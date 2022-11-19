@@ -1,0 +1,170 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use utf8;
+
+no warnings 'utf8';
+
+my $USAGE = <<"USAGE";
+Usage: smi2srt input-smi-01 [input-smi-02 ...] 
+   or: smi2srt < input-smi > output-srt
+
+The latest version: <https://gist.github.com/9beach/5980646>
+USAGE
+
+my $no_pipe = -t STDIN;
+
+die $USAGE if (
+    ($#ARGV >= 0 and ($ARGV[0] eq "-h" or $ARGV[0] eq "--help")) or
+    ($no_pipe and $#ARGV < 0) or
+    (not $no_pipe and $#ARGV >= 0)
+); 
+
+if ($#ARGV < 0) {
+    my $content; { local $/; $content = <STDIN> };
+    die "invalid content\n" if (0 != to_srt(conv($content), *STDOUT));
+} else {
+    foreach my $smi (@ARGV) {
+        my $srt = $smi; $srt =~ s/\.[^\/\.]*$//; $srt .= ".srt";
+
+        unless (open(SMI, '<', $smi)) {
+            print STDERR "failed to open: '${smi}'\n";
+            next;
+        }
+        if (-e $srt) {
+            print STDERR "already exists: '${srt}'\n";
+            close(SMI);
+            next;
+        }
+        unless (open(SRT, '>', $srt)) {
+            print STDERR "failed to open: '${srt}'\n";
+            close(SMI);
+            next;
+        }
+        my $content; { local $/; $content = <SMI> };
+        if (0 != to_srt(conv($content), *SRT)) {
+            print STDERR "invalid content: '${smi}'\n";
+            close(SMI);
+            close(SRT);
+            unlink $srt;
+        } else {
+            print STDERR "created: '${srt}'\n";
+            close(SMI);
+            close(SRT);
+        }
+    }
+}
+
+exit 0;
+
+# Below, defines submodules
+
+# Decodes SAMI to UTF-8
+sub conv {
+    my $buf = shift;
+
+    my $hd = substr $buf, 0, 1280;
+    if (not utf8::decode $hd) {
+        require Encode;
+        require Encode::Guess;
+        my $decoder = Encode::Guess::guess_encoding($buf, qw/cp949 euc-kr/);
+        if (ref($decoder)) {
+            $buf = $decoder->decode($buf);
+        } else {
+            # Fairly often it works
+            $buf = Encode::decode("CP949", $buf);
+        }
+    }
+
+    return $buf;
+}
+
+# Coverts SAMI to UTF-8
+# Returns 0 on success
+sub to_srt {
+    my $buf = shift;
+    my $out = shift;
+
+    # FROM:
+    # ...
+    # <SYNC Start=50487><P Class=KOKRCC>
+    # Lolita,<br>light of my life,
+    # <SYNC Start=53239><P Class=KOKRCC>
+    # &nbsp;
+    # <SYNC Start=53323><P Class=KOKRCC>
+    # <font color=red>fire of my loins.<br>My sin, my soul.
+    # <SYNC Start=55074><P Class=KOKRCC>
+    # &nbsp;
+    #
+    # TO:
+    # ...\t50487 Lolita,\nlight of my life,\t53239 \t53323 <font color=red> ...
+    for ($buf) {
+        tr/\r\n\t//d;
+        # Some malformed SAMIs have <SYNC> after </BODY>
+        s/<\/BODY>.*//gi;
+        # They are useless in HTML rendering (<!-->, <P>, </P>, </SYNC>)
+        s/<(!--|.?P\b|\/SYNC)[^>]*>//gi;
+        s/&nbsp;/ /g;
+        s/<BR\b[^>]*> */\n/gi;
+        s/^ *\n//gm;
+        s/<SYNC[^=]*=[^0-9]*([0-9][0-9]*)[^>]*>[\n ]*/\t$1 /gi;
+    }
+    
+    my @subs = split /\t/, $buf;
+    
+    # At least 3 elements [ "<SAMI><HEAD>...", "\t...", "\t...", ... ]
+    return -1 if scalar(@subs) < 3;
+    
+    # Removes a string before first TAB
+    shift @subs;
+    
+    my $prev_time = 0;
+    my $prev_sub = "";
+    my $no = 0;
+    
+    # FROM:
+    # \t50487 Lolita,\nlight of my life,
+    # \t53239 
+    # \t53323 <font color=red>fire of my loins.\nMy sin, my soul.
+    # \t55074 
+    #
+    # TO:
+    # 1
+    # 00:00:50,487 --> 00:00:53,239
+    # <font color=red>"Lolita,
+    # light of my life,"
+    # 
+    # 2
+    # 00:00:53,323 --> 00:00:55,074
+    # <font color=red>"fire of my loins.
+    # My sin, my soul."
+    foreach (@subs) {
+        my $sp = index($_, ' ');
+        my $curr_sub = substr $_, $sp+1;
+        my $curr_time = int(substr $_, 0, $sp);
+    
+        if ($prev_sub ne "") {
+            $no += 1;
+            print $out "$no\n".
+                  "${\to_hms($prev_time)} --> ${\to_hms($curr_time)}\n".
+                  "$prev_sub\n\n";
+        }
+    
+        $prev_time = $curr_time;
+        $prev_sub = $curr_sub;
+    }
+    return 0;
+}
+
+sub to_hms {
+    my $millisec = shift;
+
+    my $seconds = $millisec / 1000;
+    my $ms = $millisec % 1000;
+    my $s = $seconds % 60;
+    my $m = ($seconds / 60) % 60;
+    my $h = ($seconds / 3600) % 60;
+
+    return sprintf("%02d:%02d:%02d,%03d", $h, $m, $s, $ms);
+}

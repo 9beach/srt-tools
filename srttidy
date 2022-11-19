@@ -1,0 +1,352 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use utf8;
+use Getopt::Std;
+
+no warnings 'utf8';
+
+my $USAGE = <<"USAGE";
+Usage: srttidy [OPTIONS] SRT-FILE [...]
+   or: srttidy [OPTIONS] < IN-SRT-FILE > OUT-SRT-FILE
+
+Options
+  -m DURATION,GAP       change timestamps by given minimum duration and gap 
+                        in seconds
+  -c COLOR              specify default subtitle font color
+  -r                    remove specified font color
+  -e                    delete empty subtitles, and reorder them one-by-one
+  -d PATTERNS           delete subtitles empty or including given patterns,
+                        and reorder them one-by-one
+  -s SECOND             shift timestamps by given seconds
+  -l TIME-MAP           correct timestamps linearly by given time map
+  -u                    do not try to encode to UTF-8
+
+Examples
+  srttidy -m 1.0,0.1 my.srt
+  srttidy -m 0.9 *.srt
+  srttidy -c silver *.srt
+  srttidy -r -u < old.srt > new.srt
+  srttidy -d yts,sub2smi,elsubtitle *.srt
+  srttidy -e -u Movies/*/*.srt
+  srttidy -s -8.26 < old.srt > new.srt
+  srttidy -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
+
+See <https://github.com/9beach/subtitle-tools> for updates and bug reports
+USAGE
+
+my $DECIMAL_FORMAT = qr/^[+-]?\d+\.?\d*$/;
+my $TIME_FORMAT = qr/[0-9][0-9]:[0-9][0-9]:[0-9][0-9],[0-9][0-9][0-9]/;
+my $DURATION_FORMAT = qr/
+    ${TIME_FORMAT}[[:blank:]]*-->[[:blank:]]*${TIME_FORMAT}[[:blank:]]*\r?\n
+    /x;
+my $TIMEMAP_FORMAT = qr/
+    ^${TIME_FORMAT}->${TIME_FORMAT}[[:blank:]]+${TIME_FORMAT}->${TIME_FORMAT}$
+    /x;
+
+sub say {
+    print STDERR shift."\n";
+}
+
+# Checks the constraints of opts
+my %opts = ();
+
+die $USAGE unless getopts("m:c:rd:el:s:uh", \%opts);
+die $USAGE if $opts{h};
+die $USAGE if (-t STDIN and $#ARGV < 0) or (not -t STDIN and $#ARGV >= 0);
+die "Cannot use both -c and -r at the same time\n" if defined $opts{c}
+    and defined $opts{r};
+die "Cannot use both -s and -l at the same time\n" if defined $opts{s}
+    and defined $opts{l};
+die "Cannot use -s or -l with multiple files\n" if $#ARGV > 0
+    and (defined $opts{s} or defined $opts{l});
+die "'$opts{l}' is not valid time-map format\n" if defined $opts{l}
+    and not $opts{l} =~ $TIMEMAP_FORMAT;
+die "'$opts{s}' is not a decimal number\n" if defined $opts{s}
+    and not $opts{s} =~ $DECIMAL_FORMAT;
+
+if ($#ARGV < 0) {
+    my $content; { local $/; $content = <STDIN> };
+    $content = conv($content) unless ($opts{u});
+    print tidy($content, %opts);
+} else {
+    foreach my $srt (@ARGV) {
+        say "tidying: $srt";
+        my $nsrt = $srt; $nsrt =~ s/\.[^\/\.]*$//; $nsrt .= "-srttidy.srt";
+
+        unless (open(SRT, '<', $srt)) {
+            say "failed to open: ${srt}";
+            next;
+        }
+        unless (open(NSRT, '>', $nsrt)) {
+            say "failed to open: ${nsrt}";
+            close(SRT);
+            next;
+        }
+        my $content; { local $/; $content = <SRT> };
+        $content = conv($content) unless ($opts{u});
+
+        $content = tidy(conv($content), %opts);
+        if ($content eq "") {
+            say "invalid content: ${srt}";
+            close(SRT);
+            close(NSRT);
+            unlink $nsrt;
+        } else {
+            say "created: ${nsrt}";
+            print NSRT $content;
+            close(SRT);
+            close(NSRT);
+        }
+    }
+}
+
+sub tidy {
+    my $content = shift;
+    my $opts = shift;
+
+    # Deletes subtitles empty or including given patterns
+    # In this step, deletes dialogues (orders and timestamps in next step)
+    if (defined $opts{d}) {
+        # \xEF\xBB\xBF: BOM
+        # \x09, \x08: boundary delimiters for text replacement
+        $content =~ s/
+            ^(\xEF\xBB\xBF)?([0-9]+)\s*(\r?\n)\s*(${DURATION_FORMAT})
+            /\x09$2$3$4\x08/xgm;
+        my @patterns = split ",", $opts{d};
+        foreach (@patterns) {
+            # Removes dialog in boundary delimiters if they include pattern
+            $content =~ s/\x08[^\x09\x08]*$_[^\x09\x08]*/\x08\x09/gmi;
+        }
+        $content =~ tr/\x09\x08//d;
+    }
+
+    # Removes orders and timestamps having blank dialogues
+    if (defined $opts{e} or defined $opts{d}) {
+        # Removes black lines
+        $content =~ s/^\s*(\r?\n)+//gm;
+        # Inserts line before each order
+        $content =~ s/(.)(\r?\n)([0-9]+\s*\n${TIME_FORMAT}\s*-->)/$1$2$2$3/gm;
+        # Removes order and timestamp with blank text
+        $content =~ s/
+            ^(\xEF\xBB\xBF)?[0-9]+\s*\n${DURATION_FORMAT}((\r?\n)+|\z)
+            //xgm;
+        # Reorders one by one
+        init_order();
+        $content =~ s/
+            ^(\xEF\xBB\xBF)?[0-9]+\s*(\r?\n${DURATION_FORMAT})
+            /${\order()}$2/xgm;
+    }
+
+    # Specifies default font color
+    if (defined $opts{c}) {
+        $content =~ s/<font color.*keep-it>//g;
+        $content =~ s/
+            (^${DURATION_FORMAT})([^\r\n])
+            /$1<font color=$opts{c} x=keep-it>$2/xgm;
+    }
+
+    # Resets specified font colors
+    if (defined $opts{r}) {
+        $content =~ s/<font color.*keep-it>//g;
+    }
+
+    # Shift timestamps
+    if (defined $opts{s}) {
+        unless ($opts{s} =~ $DECIMAL_FORMAT) {
+            die "'$opts{s}' is not a decimal number\n";
+        }
+        my $sec = $opts{s};
+        $content =~ s/
+            (${TIME_FORMAT})\s*-->\s*(${TIME_FORMAT}[[:blank:]]*)
+            /${\s_shift($1, $sec)} --> ${\s_shift($2, $sec)}/xg;
+    }
+
+    # Corrects timestamps linearly
+    if (defined $opts{l}) {
+        my ($a, $b) = slope_intercept($opts{l});
+        $content =~ s/
+            (${TIME_FORMAT})\s*-->\s*(${TIME_FORMAT})
+            /${\l_shift($1, $a, $b)} --> ${\l_shift($2, $a, $b)}/xg;
+    }
+
+    # Changes timestamps by given minimum duration and gap, and reports them
+    if (defined $opts{m}) {
+        my ($md, $mg) = split(",", $opts{m});
+        my $ncontent = "";
+
+        # Dummy for last element
+        $content =~ s/\s*\z/\n10000000\n98:00:00,000 --> 99:59:00,000\ndummy/m;
+
+        # \x09: delimiter for each (order + timestamp + dialog)
+        $content =~ s/
+            ^(\xEF\xBB\xBF)?([0-9]+)\s*(\r?\n)\s*(${DURATION_FORMAT})
+            /\x09$2$3$4/xgm;
+
+        my ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $pdialog) = ("");
+
+        # Iterates for each delimiter
+        while ($content =~ /
+                \x09([0-9]+)\s*(\r?\n)(${TIME_FORMAT}).*-->.*
+                (${TIME_FORMAT}).*\r?\n([^\x09]*)
+                /xgm) {
+            my (
+                $order, $from, $from_s, $to, $to_s, $dialog
+            ) = ($1, $3, to_s($3), $4, to_s($4), $5);
+
+            unless ($porder eq "") {
+                $ncontent .= analyze (
+                    ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $pdialog),
+                    ($order, $from, $from_s, $to, $to_s, $dialog),
+                    ($md, $mg),
+                );
+            }
+            ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $pdialog) =
+                ($order, $from, $from_s, $to, $to_s, $dialog);
+        }
+
+        $content = $ncontent;
+    }
+
+    return $content;
+}
+
+sub analyze {
+    my (
+        $porder, $pfrom, $pfrom_s, $pto, $pto_s, $pdialog,
+        $order, $from, $from_s, $to, $to_s, $dialog,
+        $md, $mg,
+    ) = @_;
+
+    my $pduration = $pto_s - $pfrom_s;
+
+    # Checks if duration is short, or timestamps are overlapped
+    if ($pduration < $md or $pto_s > $from_s) {
+        my $state = 'SHORT';
+        $state = 'OVERLAPPED' if $pto_s > $from_s;
+
+        my $new_pto_s = 0;
+
+        if ($pfrom_s + $md + $mg < $from_s) {
+            if ($state eq 'SHORT') {
+                $new_pto_s = $md + $pfrom_s;
+            } else {
+                $new_pto_s = $from_s - $mg;
+            }
+            $state .= '/FIXED';
+        } elsif ($pto_s + $mg < $from_s) {
+            $new_pto_s = $from_s - $mg;
+            $state .= '/FIXED BUT SHORT';
+        }
+        my $sduration;
+        if ($new_pto_s) {
+            $sduration =
+                sprintf('%.3f -> %.3f', $pduration, $new_pto_s - $pfrom_s);
+        } else {
+            $sduration = sprintf('%.3f', $pduration);
+        }
+        say_tidy_info(
+            $porder,
+            "$state ($sduration))",
+            "$pfrom --> $pto\n$pdialog",
+        );
+        if ($new_pto_s) {
+            $pto_s = $new_pto_s;
+            $pto = to_hms($pto_s * 1000);
+        }
+    }
+    return "$porder\n$pfrom --> $pto\n$pdialog";
+}
+
+sub say_tidy_info {
+    say '* '.shift.': '.shift;
+    my $dialog = shift;
+    $dialog =~ s/^/  /mg;
+    $dialog =~ s/\s*\z/\n/m;
+    say $dialog;
+}
+
+my $_order = 0;
+
+sub init_order {
+    $_order = 0;
+}
+
+sub order {
+    $_order += 1;
+    return $_order;
+}
+
+# Gets slope $a and intercept $b for y = ax + b
+sub slope_intercept {
+    my $opt = shift;
+    my @m = split(/  */, $opt);
+    my @t1 = split("->", $m[0]);
+    my @t2 = split("->", $m[1]);
+    my $t11 = to_s($t1[0]);
+    my $t12 = to_s($t1[1]);
+    my $t21 = to_s($t2[0]);
+    my $t22 = to_s($t2[1]);
+    my $a = ($t22 - $t12) / ($t21 - $t11);
+    my $b = $t12 - $a * $t11;
+
+    return ($a, $b);
+}
+
+# Below, defines submodules
+sub s_shift {
+    my $t = shift;
+    my $s = shift;
+
+    return to_hms((to_s($t) + $s) * 1000);
+}
+
+sub l_shift {
+    my $t = shift;
+    my $a = shift;
+    my $b = shift;
+
+    return to_hms((to_s($t) * $a + $b) * 1000);
+}
+
+# Decodes to UTF-8
+sub conv {
+    my $buf = shift;
+    my $hd = substr $buf, 0, 1280;
+
+    if (not utf8::decode $hd) {
+        require Encode;
+        require Encode::Guess;
+        my $decoder = Encode::Guess::guess_encoding($buf, qw/cp949 euc-kr/);
+        if (ref($decoder)) {
+            $buf = $decoder->decode($buf);
+        } else {
+            # Fairly often it works
+            $buf = Encode::decode("CP949", $buf);
+        }
+    }
+    $buf =~ tr/\r//d;
+
+    return $buf;
+}
+
+sub to_s {
+    my $fmt = shift;
+    $fmt =~ s/,/./;
+    my @hms = split(":", $fmt);
+    return $hms[0] * 3600 + $hms[1] * 60 + $hms[2];
+}
+
+sub to_hms {
+    my $millisec = shift;
+    $millisec = 0 if ($millisec < 0);
+
+    my $seconds = $millisec / 1000;
+    my $ms = $millisec % 1000;
+    my $s = $seconds % 60;
+    my $m = ($seconds / 60) % 60;
+    my $h = ($seconds / 3600) % 60;
+
+    return sprintf("%02d:%02d:%02d,%03d", $h, $m, $s, $ms);
+}
