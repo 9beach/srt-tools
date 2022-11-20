@@ -1,0 +1,39 @@
+1
+00:00:25,500 --> 00:00:35,500
+<font color=ccffaa>Sub2smi  <font color=yellow>by
+<font color=violet>WAF<font color=white>-<font color=00ff55>CAP  <font color=skyblue>영화가 좋아
+
+2
+00:00:37,615 --> 00:00:40,615
+<font color=lightgreen>매드 맥스
+<font color=yellow>1 9 7 9
+
+3
+00:01:04,427 --> 00:01:07,624
+<font color=00ffff>지금으로부터 몇 년 후...
+
+4
+00:01:07,830 --> 00:01:13,065
+<font color=yellow>이건 일상적인 추적 업무다
+반복한다, 일상적인 추적이다
+
+5
+00:01:13,611 --> 00:01:17,863
+<font color=yellow>지원 요청 좀 해줘요
+알다시피 이건 긴급사태요
+
+6
+00:01:17,981 --> 00:01:21,806
+<font color=yellow>- 정보를 전달했다
+- 이건 역부족이라구!
+
+7
+00:01:22,111 --> 00:01:28,511
+<font color=yellow>반복한다, 일상적인 추적이다
+보퍼와 연락하기 바란다
+
+8
+00:01:29,548 --> 00:01:34,355
+<font color=yellow>보퍼 나와라, 긴급 상황 발생
+지원 바란다, 보퍼 나와라
+

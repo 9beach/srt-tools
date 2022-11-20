@@ -21,38 +21,31 @@ Options
                         and reorder them one-by-one
   -s SECOND             shift timestamps by given seconds
   -l TIME-MAP           correct timestamps linearly by given time map
-  -u                    do not try to encode to UTF-8
 
 Examples
   srttidy -m 1.0,0.1 my.srt
-  srttidy -m 0.9 *.srt
   srttidy -c silver *.srt
-  srttidy -r -u < old.srt > new.srt
+  srttidy -r < old.srt > new.srt
   srttidy -d yts,sub2smi,elsubtitle *.srt
-  srttidy -e -u Movies/*/*.srt
+  srttidy -e Movies/*/*.srt
   srttidy -s -8.26 < old.srt > new.srt
   srttidy -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
 
-See <https://github.com/9beach/subtitle-tools> for updates and bug reports
+See <https://github.com/9beach/srt-tools> for updates and bug reports
 USAGE
 
-my $DECIMAL_FORMAT = qr/^[+-]?\d+\.?\d*$/;
-my $TIME_FORMAT = qr/[0-9][0-9]:[0-9][0-9]:[0-9][0-9],[0-9][0-9][0-9]/;
-my $DURATION_FORMAT = qr/
-    ${TIME_FORMAT}[[:blank:]]*-->[[:blank:]]*${TIME_FORMAT}[[:blank:]]*\r?\n
-    /x;
-my $TIMEMAP_FORMAT = qr/
-    ^${TIME_FORMAT}->${TIME_FORMAT}[[:blank:]]+${TIME_FORMAT}->${TIME_FORMAT}$
-    /x;
+my $QR_BOM = qr/\xEF\xBB\xBF/;
+my $QR_DECIMAL = qr/[+-]?\d+\.?\d*/;
+my $QR_TIME = qr/[0-9][0-9]:[0-9][0-9]:[0-9][0-9],[0-9][0-9][0-9]/;
+my $QR_DURATION = qr/${QR_TIME} *--> *${QR_TIME} *\r?\n/;
+my $QR_TIMEMAP = qr/${QR_TIME}->${QR_TIME} +${QR_TIME}->${QR_TIME}/;
 
-sub say {
-    print STDERR shift."\n";
-}
+sub say { print STDERR shift."\n"; }
 
-# Checks the constraints of opts
 my %opts = ();
 
-die $USAGE unless getopts("m:c:rd:el:s:uh", \%opts);
+# Checks the constraints of opts
+die $USAGE unless getopts("m:c:rd:el:s:h", \%opts);
 die $USAGE if $opts{h};
 die $USAGE if (-t STDIN and $#ARGV < 0) or (not -t STDIN and $#ARGV >= 0);
 die "Cannot use both -c and -r at the same time\n" if defined $opts{c}
@@ -62,58 +55,75 @@ die "Cannot use both -s and -l at the same time\n" if defined $opts{s}
 die "Cannot use -s or -l with multiple files\n" if $#ARGV > 0
     and (defined $opts{s} or defined $opts{l});
 die "'$opts{l}' is not valid time-map format\n" if defined $opts{l}
-    and not $opts{l} =~ $TIMEMAP_FORMAT;
+    and not $opts{l} =~ /^${QR_TIMEMAP}$/;
 die "'$opts{s}' is not a decimal number\n" if defined $opts{s}
-    and not $opts{s} =~ $DECIMAL_FORMAT;
+    and not $opts{s} =~ /^${QR_DECIMAL}$/;
 
+# Reads from pipe
 if ($#ARGV < 0) {
     my $content; { local $/; $content = <STDIN> };
-    $content = conv($content) unless ($opts{u});
-    print tidy($content, %opts);
-} else {
-    foreach my $srt (@ARGV) {
-        say "tidying: $srt";
-        my $nsrt = $srt; $nsrt =~ s/\.[^\/\.]*$//; $nsrt .= "-srttidy.srt";
 
-        unless (open(SRT, '<', $srt)) {
-            say "failed to open: ${srt}";
-            next;
-        }
-        unless (open(NSRT, '>', $nsrt)) {
-            say "failed to open: ${nsrt}";
-            close(SRT);
-            next;
-        }
-        my $content; { local $/; $content = <SRT> };
-        $content = conv($content) unless ($opts{u});
+    $content = tidy(conv($content), %opts);
+    die "invalid content\n" if $content eq "";
+    print $content;
 
-        $content = tidy(conv($content), %opts);
-        if ($content eq "") {
-            say "invalid content: ${srt}";
-            close(SRT);
-            close(NSRT);
-            unlink $nsrt;
-        } else {
-            say "created: ${nsrt}";
-            print NSRT $content;
-            close(SRT);
-            close(NSRT);
-        }
+    exit 0;
+}
+
+my $err = 0;
+
+# Reads ARGV files
+foreach my $srt (@ARGV) {
+    my $nsrt = $srt; $nsrt =~ s/\.[^\/\.]*$//; $nsrt .= "-tidy.srt";
+
+    unless (open(SRT, '<', $srt)) {
+        $err = -1;
+        say "failed to open: ${srt}";
+        next;
+    }
+    unless (open(NSRT, '>', $nsrt)) {
+        $err = -1;
+        say "failed to open: ${nsrt}";
+        close(SRT);
+        next;
+    }
+    my $content; { local $/; $content = <SRT> };
+
+    # Shows file name on analysis
+    say "tidying: $nsrt" if (defined $opts{m});
+
+    $content = tidy(conv($content), %opts);
+    if ($content eq "") {
+        $err = -1;
+        say "invalid content: ${srt}";
+        close(SRT);
+        close(NSRT);
+        unlink $nsrt;
+    } else {
+        say "created: ${nsrt}";
+        print NSRT $content;
+        close(SRT);
+        close(NSRT);
     }
 }
 
+exit $err;
+
+# Defines submodules below
+
+# Processes the commands
 sub tidy {
     my $content = shift;
     my $opts = shift;
 
-    # Deletes subtitles empty or including given patterns
-    # In this step, deletes dialogues (orders and timestamps in next step)
+    # Checks if valid SubRip
+    return "" if $content !~ /^(${QR_BOM})?[0-9]+\s*\n\s*${QR_DURATION}\s*/m;
+
+    # Deletes dialogues empty or including given patterns
     if (defined $opts{d}) {
-        # \xEF\xBB\xBF: BOM
-        # \x09, \x08: boundary delimiters for text replacement
-        $content =~ s/
-            ^(\xEF\xBB\xBF)?([0-9]+)\s*(\r?\n)\s*(${DURATION_FORMAT})
-            /\x09$2$3$4\x08/xgm;
+        # \x08, \x09: boundary delimiters for text replacement
+        $content =~ s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})
+                    /\x09$2$3$4\x08/xgm;
         my @patterns = split ",", $opts{d};
         foreach (@patterns) {
             # Removes dialog in boundary delimiters if they include pattern
@@ -124,51 +134,46 @@ sub tidy {
 
     # Removes orders and timestamps having blank dialogues
     if (defined $opts{e} or defined $opts{d}) {
-        # Removes black lines
-        $content =~ s/^\s*(\r?\n)+//gm;
-        # Inserts line before each order
-        $content =~ s/(.)(\r?\n)([0-9]+\s*\n${TIME_FORMAT}\s*-->)/$1$2$2$3/gm;
-        # Removes order and timestamp with blank text
-        $content =~ s/
-            ^(\xEF\xBB\xBF)?[0-9]+\s*\n${DURATION_FORMAT}((\r?\n)+|\z)
-            //xgm;
-        # Reorders one by one
-        init_order();
-        $content =~ s/
-            ^(\xEF\xBB\xBF)?[0-9]+\s*(\r?\n${DURATION_FORMAT})
-            /${\order()}$2/xgm;
+        my $order = 0;
+        for ($content) {
+            # Removes black lines
+            s/^\s*(\r?\n)+//gm;
+            # Inserts line before each order
+            s/(.)(\r?\n)([0-9]+\s*\n${QR_TIME} *-->)/$1$2$2$3/gm;
+            # Removes order and timestamp with blank text
+            s/^(${QR_BOM})?[0-9]+\s*\n${QR_DURATION}((\r?\n)+|\z)//gm;
+            # Reorders one by one
+            s/^(${QR_BOM})?[0-9]+\s*(\r?\n${QR_DURATION})/${\++$order}$2/gm;
+        }
     }
 
     # Specifies default font color
     if (defined $opts{c}) {
-        $content =~ s/<font color.*keep-it>//g;
-        $content =~ s/
-            (^${DURATION_FORMAT})([^\r\n])
-            /$1<font color=$opts{c} x=keep-it>$2/xgm;
+        $content =~ s/<font color[^>]* x=keep-it>//g;
+        $content =~ s/(^${QR_DURATION})([^\r\n])
+                    /$1<font color=$opts{c} x=keep-it>$2/xgm;
     }
 
     # Resets specified font colors
     if (defined $opts{r}) {
-        $content =~ s/<font color.*keep-it>//g;
+        $content =~ s/<font color[^>]* x=keep-it>//g;
     }
 
     # Shift timestamps
     if (defined $opts{s}) {
-        unless ($opts{s} =~ $DECIMAL_FORMAT) {
+        unless ($opts{s} =~ /^${QR_DECIMAL}$/) {
             die "'$opts{s}' is not a decimal number\n";
         }
         my $sec = $opts{s};
-        $content =~ s/
-            (${TIME_FORMAT})\s*-->\s*(${TIME_FORMAT}[[:blank:]]*)
-            /${\s_shift($1, $sec)} --> ${\s_shift($2, $sec)}/xg;
+        $content =~ s/(${QR_TIME})[[:blank:]]*-->[[:blank:]]*(${QR_TIME})
+                    /${\s_shift($1, $sec)} --> ${\s_shift($2, $sec)}/xg;
     }
 
     # Corrects timestamps linearly
     if (defined $opts{l}) {
         my ($a, $b) = slope_intercept($opts{l});
-        $content =~ s/
-            (${TIME_FORMAT})\s*-->\s*(${TIME_FORMAT})
-            /${\l_shift($1, $a, $b)} --> ${\l_shift($2, $a, $b)}/xg;
+        $content =~ s/(${QR_TIME})[[:blank:]]*-->[[:blank:]]*(${QR_TIME})
+                    /${\l_shift($1, $a, $b)} --> ${\l_shift($2, $a, $b)}/xg;
     }
 
     # Changes timestamps by given minimum duration and gap, and reports them
@@ -176,21 +181,19 @@ sub tidy {
         my ($md, $mg) = split(",", $opts{m});
         my $ncontent = "";
 
-        # Dummy for last element
-        $content =~ s/\s*\z/\n10000000\n98:00:00,000 --> 99:59:00,000\ndummy/m;
-
-        # \x09: delimiter for each (order + timestamp + dialog)
-        $content =~ s/
-            ^(\xEF\xBB\xBF)?([0-9]+)\s*(\r?\n)\s*(${DURATION_FORMAT})
-            /\x09$2$3$4/xgm;
+        for ($content) {
+            # Dummy for last element
+            s/\s*\z/\n1000000\n99:00:00,000 --> 99:59:59,000\ndummy/m;
+            # \x09: delimiter for each (order + timestamp + dialog)
+            s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})/\x09$2$3$4/gm;
+        }
 
         my ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $pdialog) = ("");
 
         # Iterates for each delimiter
         while ($content =~ /
-                \x09([0-9]+)\s*(\r?\n)(${TIME_FORMAT}).*-->.*
-                (${TIME_FORMAT}).*\r?\n([^\x09]*)
-                /xgm) {
+                \x09([0-9]+)\s*(\r?\n)(${QR_TIME})[[:blank:]]*-->[[:blank:]]*
+                (${QR_TIME}).*\r?\n([^\x09]*)/xgm) {
             my (
                 $order, $from, $from_s, $to, $to_s, $dialog
             ) = ($1, $3, to_s($3), $4, to_s($4), $5);
@@ -239,6 +242,7 @@ sub analyze {
             $new_pto_s = $from_s - $mg;
             $state .= '/FIXED BUT SHORT';
         }
+
         my $sduration;
         if ($new_pto_s) {
             $sduration =
@@ -246,11 +250,13 @@ sub analyze {
         } else {
             $sduration = sprintf('%.3f', $pduration);
         }
+
         say_tidy_info(
             $porder,
             "$state ($sduration))",
             "$pfrom --> $pto\n$pdialog",
         );
+
         if ($new_pto_s) {
             $pto_s = $new_pto_s;
             $pto = to_hms($pto_s * 1000);
@@ -265,17 +271,6 @@ sub say_tidy_info {
     $dialog =~ s/^/  /mg;
     $dialog =~ s/\s*\z/\n/m;
     say $dialog;
-}
-
-my $_order = 0;
-
-sub init_order {
-    $_order = 0;
-}
-
-sub order {
-    $_order += 1;
-    return $_order;
 }
 
 # Gets slope $a and intercept $b for y = ax + b
@@ -318,6 +313,7 @@ sub conv {
     if (not utf8::decode $hd) {
         require Encode;
         require Encode::Guess;
+
         my $decoder = Encode::Guess::guess_encoding($buf, qw/cp949 euc-kr/);
         if (ref($decoder)) {
             $buf = $decoder->decode($buf);

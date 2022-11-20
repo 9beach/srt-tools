@@ -10,8 +10,10 @@ my $USAGE = <<"USAGE";
 Usage: smi2srt input-smi-01 [input-smi-02 ...] 
    or: smi2srt < input-smi > output-srt
 
-The latest version: <https://gist.github.com/9beach/5980646>
+See <https://github.com/9beach/srt-tools> for updates and bug reports
 USAGE
+
+sub say { print STDERR shift."\n"; }
 
 my $no_pipe = -t STDIN;
 
@@ -21,53 +23,64 @@ die $USAGE if (
     (not $no_pipe and $#ARGV >= 0)
 ); 
 
+# Reads from pipe
 if ($#ARGV < 0) {
     my $content; { local $/; $content = <STDIN> };
     die "invalid content\n" if (0 != to_srt(conv($content), *STDOUT));
-} else {
-    foreach my $smi (@ARGV) {
-        my $srt = $smi; $srt =~ s/\.[^\/\.]*$//; $srt .= ".srt";
 
-        unless (open(SMI, '<', $smi)) {
-            print STDERR "failed to open: '${smi}'\n";
-            next;
-        }
-        if (-e $srt) {
-            print STDERR "already exists: '${srt}'\n";
-            close(SMI);
-            next;
-        }
-        unless (open(SRT, '>', $srt)) {
-            print STDERR "failed to open: '${srt}'\n";
-            close(SMI);
-            next;
-        }
-        my $content; { local $/; $content = <SMI> };
-        if (0 != to_srt(conv($content), *SRT)) {
-            print STDERR "invalid content: '${smi}'\n";
-            close(SMI);
-            close(SRT);
-            unlink $srt;
-        } else {
-            print STDERR "created: '${srt}'\n";
-            close(SMI);
-            close(SRT);
-        }
+    exit 0;
+}
+
+my $err = 0;
+
+# Reads ARGV files
+foreach my $smi (@ARGV) {
+    my $srt = $smi; $srt =~ s/\.[^\/\.]*$//; $srt .= ".srt";
+
+    unless (open(SMI, '<', $smi)) {
+        $err = -1;
+        say "failed to open: ${smi}";
+        next;
+    }
+    if (-e $srt) {
+        $err = -1;
+        say "already exists: ${srt}";
+        close(SMI);
+        next;
+    }
+    unless (open(SRT, '>', $srt)) {
+        $err = -1;
+        say "failed to open: ${srt}";
+        close(SMI);
+        next;
+    }
+    my $content; { local $/; $content = <SMI> };
+    if (0 != to_srt(conv($content), *SRT)) {
+        $err = -1;
+        say "invalid content: ${smi}";
+        close(SMI);
+        close(SRT);
+        unlink $srt;
+    } else {
+        say "created: ${srt}";
+        close(SMI);
+        close(SRT);
     }
 }
 
-exit 0;
+exit $err;
 
-# Below, defines submodules
+# Defines submodules below
 
 # Decodes SAMI to UTF-8
 sub conv {
     my $buf = shift;
-
     my $hd = substr $buf, 0, 1280;
+
     if (not utf8::decode $hd) {
         require Encode;
         require Encode::Guess;
+
         my $decoder = Encode::Guess::guess_encoding($buf, qw/cp949 euc-kr/);
         if (ref($decoder)) {
             $buf = $decoder->decode($buf);

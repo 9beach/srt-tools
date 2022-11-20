@@ -1,0 +1,36 @@
+sh -c 'for i in `seq 1 50`; do ~/GitHub/Home/bin/smi2srt-sh <utf8.smi> /dev/null; done'
+3.74s user 0.48s system 105% cpu 4.004 total
+
+# Without character conv (Encode package)
+
+sh -c 'for i in `seq 1 50`; do smi2srt.pl <utf8.txt> /dev/null; done'
+1.31s user 0.40s system 91% cpu 1.862 total
+sh -c 'for i in `seq 1 50`; do smi2srt.pl <cp949.txt> /dev/null; done'
+1.32s user 0.40s system 90% cpu 1.903 total
+
+# With character conv
+
+sh -c 'for i in `seq 1 50`; do smi2srt.pl <utf8.smi>/dev/null; done'
+1.31s user 0.41s system 91% cpu 1.871 total
+sh -c 'for i in `seq 1 50`; do smi2srt.pl <cp949.bad.smi>/dev/null; done'
+5.93s user 0.67s system 97% cpu 6.770 total
+sh -c 'for i in `seq 1 50`; do smi2srt.pl <cp949.rare.smi>/dev/null; done'
+6.80s user 0.66s system 97% cpu 7.645 total
+sh -c 'for i in `seq 1 50`; do smi2srt.pl <cp949.smi>/dev/null; done'
+6.01s user 0.67s system 97% cpu 6.846 total
+sh -c 'for i in `seq 1 50`; do smi2srt.pl <utf16.bad.smi>/dev/null; done'
+4.89s user 0.60s system 96% cpu 5.661 total
+sh -c 'for i in `seq 1 50`; do smi2srt.pl <utf16.smi>/dev/null; done'
+4.91s user 0.61s system 96% cpu 5.689 total
+sh -c 'for i in `seq 1 50`; do smi2srt.pl <utf16be.smi>/dev/null; done'
+4.92s user 0.61s system 96% cpu 5.700 total
+sh -c 'for i in `seq 1 50`; do smi2srt.pl <utf16le.smi>/dev/null; done'
+4.94s user 0.60s system 97% cpu 5.714 total
+sh -c 'for i in `seq 1 50`; do smi2srt.pl <utf32.bad.smi>/dev/null; done'
+5.02s user 0.62s system 97% cpu 5.806 total
+sh -c 'for i in `seq 1 50`; do smi2srt.pl <utf32.smi>/dev/null; done'
+4.98s user 0.63s system 97% cpu 5.777 total
+sh -c 'for i in `seq 1 50`; do smi2srt.pl <utf32be.smi>/dev/null; done'
+4.97s user 0.63s system 96% cpu 5.773 total
+sh -c 'for i in `seq 1 50`; do smi2srt.pl <utf32le.smi>/dev/null; done'
+5.01s user 0.62s system 97% cpu 5.794 total
