@@ -16,19 +16,21 @@ Options
                         in seconds
   -c COLOR              specify default subtitle font color
   -r                    remove specified font color
-  -e                    delete empty subtitles, and reorder them one-by-one
+  -n                    delete empty subtitles, and reorder them one-by-one
   -d PATTERNS           delete subtitles empty or including given patterns,
                         and reorder them one-by-one
   -s SECOND             shift timestamps by given seconds
   -l TIME-MAP           correct timestamps linearly by given time map
+  -t                    display subtitle texts only
 
 Examples
   srttidy -m 1.0,0.1 my.srt
   srttidy -c silver *.srt
   srttidy -r < old.srt > new.srt
   srttidy -d yts,sub2smi,elsubtitle *.srt
-  srttidy -e Movies/*/*.srt
+  srttidy -n Movies/*/*.srt
   srttidy -s -8.26 < old.srt > new.srt
+  srttidy -t < my.srt > my.txt
   srttidy -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
@@ -45,7 +47,7 @@ sub say { print STDERR shift."\n"; }
 my %opts = ();
 
 # Checks the constraints of opts
-die $USAGE unless getopts("m:c:rd:el:s:h", \%opts);
+die $USAGE unless getopts("tm:c:rd:nl:s:h", \%opts);
 die $USAGE if $opts{h};
 die $USAGE if (-t STDIN and $#ARGV < 0) or (not -t STDIN and $#ARGV >= 0);
 die "Cannot use both -c and -r at the same time\n" if defined $opts{c}
@@ -58,6 +60,8 @@ die "'$opts{l}' is not valid time-map format\n" if defined $opts{l}
     and not $opts{l} =~ /^${QR_TIMEMAP}$/;
 die "'$opts{s}' is not a decimal number\n" if defined $opts{s}
     and not $opts{s} =~ /^${QR_DECIMAL}$/;
+die "Cannot use -t with the other options\n" if defined $opts{t}
+    and (scalar keys %opts > 1);
 
 # Reads from pipe
 if ($#ARGV < 0) {
@@ -74,7 +78,12 @@ my $err = 0;
 
 # Reads ARGV files
 foreach my $srt (@ARGV) {
-    my $nsrt = $srt; $nsrt =~ s/\.[^\/\.]*$//; $nsrt .= "-tidy.srt";
+    my $nsrt = $srt; $nsrt =~ s/\.[^\/\.]*$//;
+    if (not defined $opts{t}) {
+        $nsrt .= "-tidy.srt" ;
+    } else {
+        $nsrt .= "-tidy.txt" ;
+    }
 
     unless (open(SRT, '<', $srt)) {
         $err = -1;
@@ -123,17 +132,17 @@ sub tidy {
     if (defined $opts{d}) {
         # \x08, \x09: boundary delimiters for text replacement
         $content =~ s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})
-                    /\x09$2$3$4\x08/xgm;
+                    /\x08$2$3$4\x09/xgm;
         my @patterns = split ",", $opts{d};
         foreach (@patterns) {
             # Removes dialog in boundary delimiters if they include pattern
-            $content =~ s/\x08[^\x09\x08]*$_[^\x09\x08]*/\x08\x09/gmi;
+            $content =~ s/\x08[^\x08]*\x09[^\x08\x09]*$_[^\x08]*//gmi;
         }
-        $content =~ tr/\x09\x08//d;
+        $content =~ tr/\x08\x09\r//d;
     }
 
     # Removes orders and timestamps having blank dialogues
-    if (defined $opts{e} or defined $opts{d}) {
+    if (defined $opts{n}) {
         my $order = 0;
         for ($content) {
             # Removes black lines
@@ -142,9 +151,35 @@ sub tidy {
             s/(.)(\r?\n)([0-9]+\s*\n${QR_TIME} *-->)/$1$2$2$3/gm;
             # Removes order and timestamp with blank text
             s/^(${QR_BOM})?[0-9]+\s*\n${QR_DURATION}((\r?\n)+|\z)//gm;
+            # Removes additional '\n' when final subtitle was empty
+            s/(\r?\n)+\z/$1/m;
             # Reorders one by one
             s/^(${QR_BOM})?[0-9]+\s*(\r?\n${QR_DURATION})/${\++$order}$2/gm;
         }
+    }
+
+    # Displays subtitle texts only
+    if (defined $opts{t}) {
+        # \x08, \x09: boundary delimiters for text replacement
+        $content =~ s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})//gm;
+        $content =~ s/\s*(\r?\n)\s*/$1/gm;
+        $content =~ s/<\/? *[a-zA-Z]*[^>]*>//gm;
+
+        # Not srt so return
+        return $content;
+    }
+ 
+    # Deletes dialogues empty or including given patterns
+    if (defined $opts{d}) {
+        # \x08, \x09: boundary delimiters for text replacement
+        $content =~ s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})
+                    /\x09$2$3$4\x08/xgm;
+        my @patterns = split ",", $opts{d};
+        foreach (@patterns) {
+            # Removes dialog in boundary delimiters if they include pattern
+            $content =~ s/\x08[^\x09\x08]*$_[^\x09\x08]*/\x08\x09/gmi;
+        }
+        $content =~ tr/\x09\x08//d;
     }
 
     # Specifies default font color
