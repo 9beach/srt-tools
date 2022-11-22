@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env perl -CA
 
 use strict;
 use warnings;
@@ -12,26 +12,32 @@ Usage: srttidy [OPTIONS] SRT-FILE [...]
    or: srttidy [OPTIONS] < IN-SRT-FILE > OUT-SRT-FILE
 
 Options
-  -m DURATION,GAP       change timestamps by given minimum duration and gap 
-                        in seconds
+  -t                    show subtitle texts only
   -c COLOR              specify default subtitle font color
   -r                    remove specified font color
-  -n                    delete empty subtitles, and reorder them one-by-one
-  -d PATTERNS           delete subtitles empty or including given patterns,
-                        and reorder them one-by-one
-  -s SECOND             shift timestamps by given seconds
+  -s SECOND             shift timestamps by given time in seconds
   -l TIME-MAP           correct timestamps linearly by given time map
-  -t                    display subtitle texts only
+  -n                    remove empty subtitles, and reorder lefts one-by-one
+  -d PATTERN            remove subtitles including given pattern
+  -g PATTERN            show subtitles including given pattern
+  -m DURATION,GAP       change timestamps by given minimum duration and gap 
+                        in seconds
+  -f CONDITION          show or apply -m option only to subtitles matching
+                        given condition
 
 Examples
-  srttidy -m 1.0,0.1 my.srt
+  srttidy -t < my.srt > my.txt
   srttidy -c silver *.srt
   srttidy -r < old.srt > new.srt
-  srttidy -d yts,sub2smi,elsubtitle *.srt
-  srttidy -n Movies/*/*.srt
   srttidy -s -8.26 < old.srt > new.srt
-  srttidy -t < my.srt > my.txt
   srttidy -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
+  srttidy -n -d '(yts|sub2smi|elsubtitle)' *.srt
+  srttidy -n Movies/*/*.srt
+  srttidy -g '(yts|sub2smi|elsubtitle)' *.srt
+  srttidy -m 1.0,0.1 my.srt
+  # LC: line counts, CC: character counts
+  srttidy -f '(LC==1 and CC>15) or CC>20' < old.srt
+  srttidy -m 3.0,0.1 -f 'CC > 20' my.srt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
 USAGE
@@ -47,7 +53,7 @@ sub say { print STDERR shift."\n"; }
 my %opts = ();
 
 # Checks the constraints of opts
-die $USAGE unless getopts("tm:c:rd:nl:s:h", \%opts);
+die $USAGE unless getopts("tm:c:rg:d:nl:s:h", \%opts);
 die $USAGE if $opts{h};
 die $USAGE if (-t STDIN and $#ARGV < 0) or (not -t STDIN and $#ARGV >= 0);
 die "Cannot use both -c and -r at the same time\n" if defined $opts{c}
@@ -66,9 +72,10 @@ die "Cannot use -t with the other options\n" if defined $opts{t}
 # Reads from pipe
 if ($#ARGV < 0) {
     my $content; { local $/; $content = <STDIN> };
+    $content = conv($content);
+    die "invalid content\n" unless valid_srt($content);
 
-    $content = tidy(conv($content), %opts);
-    die "invalid content\n" if $content eq "";
+    $content = tidy($content, %opts);
     print $content;
 
     exit 0;
@@ -78,12 +85,9 @@ my $err = 0;
 
 # Reads ARGV files
 foreach my $srt (@ARGV) {
-    my $nsrt = $srt; $nsrt =~ s/\.[^\/\.]*$//;
-    if (not defined $opts{t}) {
-        $nsrt .= "-tidy.srt" ;
-    } else {
-        $nsrt .= "-tidy.txt" ;
-    }
+    my $nsrt = $srt;
+    $nsrt =~ s/\.[^\/\.]*$//;
+    $nsrt .= defined $opts{t} ? "-tidy.txt" : "-tidy.srt";
 
     unless (open(SRT, '<', $srt)) {
         $err = -1;
@@ -96,15 +100,22 @@ foreach my $srt (@ARGV) {
         close(SRT);
         next;
     }
+
     my $content; { local $/; $content = <SRT> };
+    $content = conv($content);
 
-    # Shows file name on analysis
-    say "tidying: $nsrt" if (defined $opts{m});
-
-    $content = tidy(conv($content), %opts);
-    if ($content eq "") {
+    unless (valid_srt($content)) {
         $err = -1;
         say "invalid content: ${srt}";
+        next;
+    }
+
+    # Shows file name on analysis with -m
+    say "tidying: $nsrt" if (defined $opts{m});
+
+    $content = tidy($content, %opts);
+    if ($content eq "") {
+        say "empty content: ${srt}";
         close(SRT);
         close(NSRT);
         unlink $nsrt;
@@ -125,23 +136,43 @@ sub tidy {
     my $content = shift;
     my $opts = shift;
 
-    # Checks if valid SubRip
-    return "" if $content !~ /^(${QR_BOM})?[0-9]+\s*\n\s*${QR_DURATION}\s*/m;
-
-    # Deletes dialogues empty or including given patterns
+    # Deletes subtitles including given pattern
     if (defined $opts{d}) {
-        # \x08, \x09: boundary delimiters for text replacement
-        $content =~ s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})
-                    /\x08$2$3$4\x09/xgm;
-        my @patterns = split ",", $opts{d};
-        foreach (@patterns) {
-            # Removes dialog in boundary delimiters if they include pattern
-            $content =~ s/\x08[^\x08]*\x09[^\x08\x09]*$_[^\x08]*//gmi;
+        for ($content) {
+            # \x08, \x09: boundary delimiters for text replacement
+            s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})
+            /\x08$2$3$4\x09/xgm;
+            # Removes a subtitle in boundary delimiters if they include pattern
+            s/\x08[^\x08]*\x09[^\x08\x09]*${opts{d}}[^\x08]*//gmi;
+            tr/\x08\x09//d;
         }
-        $content =~ tr/\x08\x09\r//d;
     }
 
-    # Removes orders and timestamps having blank dialogues
+    # Shows subtitles including given pattern
+    if (defined $opts{g}) {
+        my $buf = $content; $content = "";
+        # \x08, \x09: boundary delimiters for text replacement
+        $buf =~ s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})
+                /\x08$2$3$4\x09/xgm;
+        while ($buf =~ /\x08[^\x08]*\x09[^\x08\x09]*${opts{g}}[^\x08]*/gmi) {
+            $content .= $&;
+        }
+        $content =~ tr/\x08\x09//d;
+    }
+
+    # Shows subtitles matching given condition
+    if (defined $opts{f} and not defined $opts{m}) {
+        my $buf = $content; $content = "";
+        # \x08, \x09: boundary delimiters for text replacement
+        $buf =~ s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})
+                /\x08$2$3$4\x09/xgm;
+        while ($buf =~ /\x08([^\x08]*\x09[^\x08\x09]*${opts{g}}[^\x08]*)/gmi) {
+            $content .= $1;
+        }
+        $content =~ tr/\x08\x09//d;
+    }
+ 
+    # Removes blank subtitles, and reorder lefts one by one
     if (defined $opts{n}) {
         my $order = 0;
         for ($content) {
@@ -152,7 +183,6 @@ sub tidy {
             # Removes order and timestamp with blank text
             s/^(${QR_BOM})?[0-9]+\s*\n${QR_DURATION}((\r?\n)+|\z)//gm;
             # Removes additional '\n' when final subtitle was empty
-            s/(\r?\n)+\z/$1/m;
             # Reorders one by one
             s/^(${QR_BOM})?[0-9]+\s*(\r?\n${QR_DURATION})/${\++$order}$2/gm;
         }
@@ -160,33 +190,23 @@ sub tidy {
 
     # Displays subtitle texts only
     if (defined $opts{t}) {
-        # \x08, \x09: boundary delimiters for text replacement
-        $content =~ s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})//gm;
-        $content =~ s/\s*(\r?\n)\s*/$1/gm;
-        $content =~ s/<\/? *[a-zA-Z]*[^>]*>//gm;
+        for ($content) {
+            # \x08, \x09: boundary delimiters for text replacement
+            s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})//gm;
+            s/\s*(\r?\n)\s*/$1/gm;
+            s/<\/? *[a-zA-Z]*[^>]*>//gm;
+        } 
 
         # Not srt so return
         return $content;
     }
  
-    # Deletes dialogues empty or including given patterns
-    if (defined $opts{d}) {
-        # \x08, \x09: boundary delimiters for text replacement
-        $content =~ s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})
-                    /\x09$2$3$4\x08/xgm;
-        my @patterns = split ",", $opts{d};
-        foreach (@patterns) {
-            # Removes dialog in boundary delimiters if they include pattern
-            $content =~ s/\x08[^\x09\x08]*$_[^\x09\x08]*/\x08\x09/gmi;
-        }
-        $content =~ tr/\x09\x08//d;
-    }
-
     # Specifies default font color
     if (defined $opts{c}) {
-        $content =~ s/<font color[^>]* x=keep-it>//g;
-        $content =~ s/(^${QR_DURATION})([^\r\n])
-                    /$1<font color=$opts{c} x=keep-it>$2/xgm;
+        for ($content) {
+            s/<font color[^>]* x=keep-it>//g;
+            s/(^${QR_DURATION})([^\r\n])/$1<font color=$opts{c} x=keep-it>$2/gm;
+        }
     }
 
     # Resets specified font colors
@@ -196,9 +216,6 @@ sub tidy {
 
     # Shift timestamps
     if (defined $opts{s}) {
-        unless ($opts{s} =~ /^${QR_DECIMAL}$/) {
-            die "'$opts{s}' is not a decimal number\n";
-        }
         my $sec = $opts{s};
         $content =~ s/(${QR_TIME})[[:blank:]]*-->[[:blank:]]*(${QR_TIME})
                     /${\s_shift($1, $sec)} --> ${\s_shift($2, $sec)}/xg;
@@ -219,41 +236,47 @@ sub tidy {
         for ($content) {
             # Dummy for last element
             s/\s*\z/\n1000000\n99:00:00,000 --> 99:59:59,000\ndummy/m;
-            # \x09: delimiter for each (order + timestamp + dialog)
+            # \x09: delimiter for each (order + timestamp + text)
             s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})/\x09$2$3$4/gm;
         }
 
-        my ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $pdialog) = ("");
+        my ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext) = ("");
 
         # Iterates for each delimiter
         while ($content =~ /
                 \x09([0-9]+)\s*(\r?\n)(${QR_TIME})[[:blank:]]*-->[[:blank:]]*
                 (${QR_TIME}).*\r?\n([^\x09]*)/xgm) {
             my (
-                $order, $from, $from_s, $to, $to_s, $dialog
+                $order, $from, $from_s, $to, $to_s, $text
             ) = ($1, $3, to_s($3), $4, to_s($4), $5);
 
             unless ($porder eq "") {
                 $ncontent .= analyze (
-                    ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $pdialog),
-                    ($order, $from, $from_s, $to, $to_s, $dialog),
+                    ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext),
+                    ($order, $from, $from_s, $to, $to_s, $text),
                     ($md, $mg),
                 );
             }
-            ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $pdialog) =
-                ($order, $from, $from_s, $to, $to_s, $dialog);
+            ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext) =
+                ($order, $from, $from_s, $to, $to_s, $text);
         }
 
         $content = $ncontent;
     }
 
+    $content =~ s/(\r?\n)+\z/$1/m;
     return $content;
+}
+
+# Checks if valid SubRip
+sub valid_srt {
+    return shift =~ /^(${QR_BOM})?[0-9]+\s*\n\s*${QR_DURATION}/m;
 }
 
 sub analyze {
     my (
-        $porder, $pfrom, $pfrom_s, $pto, $pto_s, $pdialog,
-        $order, $from, $from_s, $to, $to_s, $dialog,
+        $porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext,
+        $order, $from, $from_s, $to, $to_s, $text,
         $md, $mg,
     ) = @_;
 
@@ -289,7 +312,7 @@ sub analyze {
         say_tidy_info(
             $porder,
             "$state ($sduration))",
-            "$pfrom --> $pto\n$pdialog",
+            "$pfrom --> $pto\n$ptext",
         );
 
         if ($new_pto_s) {
@@ -297,15 +320,15 @@ sub analyze {
             $pto = to_hms($pto_s * 1000);
         }
     }
-    return "$porder\n$pfrom --> $pto\n$pdialog";
+    return "$porder\n$pfrom --> $pto\n$ptext";
 }
 
 sub say_tidy_info {
     say '* '.shift.': '.shift;
-    my $dialog = shift;
-    $dialog =~ s/^/  /mg;
-    $dialog =~ s/\s*\z/\n/m;
-    say $dialog;
+    my $text = shift;
+    $text =~ s/^/  /mg;
+    $text =~ s/\s*\z/\n/m;
+    say $text;
 }
 
 # Gets slope $a and intercept $b for y = ax + b
@@ -328,7 +351,6 @@ sub slope_intercept {
 sub s_shift {
     my $t = shift;
     my $s = shift;
-
     return to_hms((to_s($t) + $s) * 1000);
 }
 
@@ -336,7 +358,6 @@ sub l_shift {
     my $t = shift;
     my $a = shift;
     my $b = shift;
-
     return to_hms((to_s($t) * $a + $b) * 1000);
 }
 
@@ -357,7 +378,7 @@ sub conv {
             $buf = Encode::decode("CP949", $buf);
         }
     }
-    $buf =~ tr/\r//d;
+    # $buf =~ tr/\r//d;
 
     return $buf;
 }
