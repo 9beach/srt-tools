@@ -35,9 +35,9 @@ Examples
   srttidy -n Movies/*/*.srt
   srttidy -g '(yts|sub2smi|elsubtitle)' *.srt
   srttidy -m 1.0,0.1 my.srt
-  # lc: line counts, cc: character counts
-  srttidy -f '(lc==1 and cc>15) or cc>20 or lc>1' < old.srt
-  srttidy -m 3,0.1 -f 'cc > 20' my.srt
+  # lc: line counts, cc: character counts, du: duration in seconds
+  srttidy -f '(lc==1 and cc>15) or cc>20 or du>3.5' < old.srt
+  srttidy -m 3,0.1 -f 'cc > 20 and du < 2' my.srt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
 USAGE
@@ -170,12 +170,18 @@ sub tidy {
 
     # Shows subtitles matching given condition
     if (defined $opts{f} and not defined $opts{m}) {
+        my $expr = $opts{f};
         my $buf = $content; $content = "";
         # \x08, \x09: boundary delimiters for text replacement
-        $buf =~ s/(${QR_BOM}?[0-9]+) *(\r?\n)+\s*(${QR_DURATION})
-                /\x08$1$2$3\x09/xgm;
-        while ($buf =~ /\x08([^\x08\x09]*)\x09([^\x08\x09]*)/gmi) {
-            $content .= "$1$2";
+        $buf =~ s/${QR_BOM}?([0-9]+) *(\r?\n)+\s*(${QR_DURATION})
+                /\x09$1$2$3/xgm;
+
+        while ($buf =~ /
+                \x09([0-9]+)(\r?\n)(${QR_TIME})[[:blank:]]*-->[[:blank:]]*
+                (${QR_TIME})([^\x09]*)/xgm) {
+            if (valid_expr($expr, to_s($4)-to_s($3), $5)) {
+                $content .= "$1$2$3 --> $4$5";
+            }
         }
         $content =~ tr/\x08\x09//d;
     }
@@ -198,11 +204,10 @@ sub tidy {
     # Displays subtitle texts only
     if (defined $opts{t}) {
         for ($content) {
-            # \x08, \x09: boundary delimiters for text replacement
-            s/\s*\n\s*/\n/gm;
             s/${QR_BOM}?[0-9]+\s*\r?\n\s*${QR_DURATION}//gm;
-            s/ +/ /g;
             s/<\/? *[a-zA-Z]*[^>]*>//gm;
+            s/^\s*//gm;
+            s/ +/ /g;
         } 
 
         # Not srt so return
@@ -241,11 +246,13 @@ sub tidy {
         my ($md, $mg) = split(",", $opts{m});
         my $ncontent = "";
         my $lf = '\n';
+        my $optf = defined $opts{f};
+        my $expr = $opts{f};
 
         for ($content) {
             # Gets my CRLF
             /${QR_BOM}?[0-9]+ *(\r?\n)/m; $lf = $1;
-            # \x09: delimiter for each (order + timestamp + text)
+            # Inserts delimiter (\x09) for each order, timestamp, and text
             s/${QR_BOM}?([0-9]+)\s*\n\s*(${QR_DURATION})/\x09$1\n$2/gm;
             # We need dummy last element for time gap
             s/\z/\x091000000\n99:00:00,000 --> 99:59:59,000\n/m;
@@ -262,10 +269,14 @@ sub tidy {
             ) = ($1, $2, to_s($2), $3, to_s($3), $4);
 
             unless ($porder eq "") {
-                $ncontent .= analyze (
-                    ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext),
-                    ($from, $from_s, $to, $to_s), ($md, $mg, $lf),
-                );
+                if (not $optf or valid_expr($expr, $pto_s-$pfrom_s, $ptext)) {
+                    $ncontent .= analyze (
+                        ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext),
+                        ($from, $from_s, $to, $to_s), ($md, $mg, $lf),
+                    );
+                } else {
+                    $ncontent .= "$porder$lf$pfrom --> $pto$ptext";
+                }
             }
             ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext) =
                 ($order, $from, $from_s, $to, $to_s, $text);
@@ -416,7 +427,7 @@ sub valid_condition {
     my $condition = shift;
     my $buf = $condition;
     for ($buf) {
-        s/\b(or|and|lc|cc)\b//gi;
+        s/\b(or|and|lc|cc|du)\b//gi;
         s/${QR_DECIMAL}//gi;
         s/[ \+\*\/\-()<>=]//gi;
     }
@@ -426,19 +437,39 @@ sub valid_condition {
     for ($condition) {
         s/\bcc\b/(-1.324)/gi;
         s/\blc\b/(-9.234762)/gi;
+        s/\bdu\b/(0.123124)/gi;
     }
     eval $condition;
     return not $@;
 }
 
-# Makes text tidy
-sub tidy_text {
+sub text_counts {
     my $text = shift;
     for ($text) {
-        # Removes black lines
+        s/<\/? *[a-zA-Z]*[^>]*>//gm;
         s/^\s*([^\s]*)\s*$/$1/g;
+        s/^\s*//gm;
         s/ +/ /g;
-        s/^(\r?\n)+//gm;
+        s/\s*\z/\n/m;
     }
-    return $text;
+    my $lc = $text =~ tr/\n//;
+    $text =~ tr/- \r\n!,\.:;—\*"'“”¿?¡!\()\[]<>『』《》｢｣<>≪≫《》〈〉//d;
+    my $cc = length($text);
+    $lc = 0 if $cc == 0;
+
+    return ($lc, $cc);
+}
+
+sub valid_expr {
+    my $expr = shift;
+    my $du = shift;
+    my ($lc, $cc) = text_counts(shift);
+
+    for ($expr) {
+      s/\blc\b/($lc)/gi;
+      s/\bcc\b/($cc)/gi;
+      s/\bdu\b/($du)/gi;
+    }
+
+    return eval($expr);
 }

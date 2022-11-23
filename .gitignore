@@ -6,6 +6,9 @@
 *.o
 *.pm.tdy
 *.bs
+?
+*-tidy.txt
+*-tidy.srt
 
 # Devel::Cover
 cover_db/

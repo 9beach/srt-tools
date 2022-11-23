@@ -5,7 +5,7 @@ DIR=$(mktemp -d)
 
 function assert_ok {
 	cmd=$(echo $1 | sed -e 's:\.\./::g' -e 's:/var[^ ]*/::g' -e 's:/tmp[^ ]*/::g')
-	(( ${#cmd} > 72 )) && cmd="${cmd:0:69}..."
+	(( ${#cmd} > 70 )) && cmd="${cmd:0:67}..."
 	eval "$1"
 	if [ $? -eq 0 ]; then
 		echo "# ok:" $cmd
@@ -62,7 +62,7 @@ for i in $DIR/s02*.srt; do
 done 
 
 echo
-echo \# Checks if test fixtures are valid
+echo \# Checks TEST FIXTURES
 assert_ok "my_iconv cp949 s01-cp949.smi | diff - s01-utf8.smi"
 assert_ok "my_iconv utf-16 s01-utf16.smi | diff - s01-utf8.smi"
 assert_ok "my_iconv utf-16 s01-utf16.smi | diff - s01-utf8.smi"
@@ -77,6 +77,7 @@ assert_ok "my_iconv utf-16 s02-utf16.srt | diff - s02-utf8.srt"
 assert_ok "my_iconv utf-16 s02-utf16.srt | diff - s02-utf8.srt "
 assert_ok "! diff s03-ascii-bom-cr-d.out s03-ascii-d.out > /dev/null"
 assert_ok "rm_bom_cr < s03-ascii-bom-cr-d.out | diff - s03-ascii-d.out"
+assert_ok "! diff s03-ascii-bom-cr-m.out s03-ascii-m.out > /dev/null"
 assert_ok "rm_bom_cr < s03-ascii-bom-cr-m.out | diff - s03-ascii-m.out"
 assert_ok "! diff s03-ascii-bom-cr.srt s03-ascii.srt > /dev/null"
 assert_ok "rm_bom_cr < s03-ascii-bom-cr.srt | diff - s03-ascii.srt"
@@ -84,4 +85,4 @@ assert_ok "rm_bom_cr < s03-ascii-bom-cr.srt | diff - s03-ascii.srt"
 rm -rf $DIR
 
 echo 
-echo \# All done
+echo \# All DONE
