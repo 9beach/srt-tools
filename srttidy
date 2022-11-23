@@ -4,7 +4,6 @@ use strict;
 use warnings;
 use utf8;
 use Getopt::Std;
-
 no warnings 'utf8';
 
 my $USAGE = <<"USAGE";
@@ -24,25 +23,26 @@ Options
                         in seconds
   -f CONDITION          show or apply -m option only to subtitles matching
                         given condition
+  -b                    remove carriage returns and BOM
 
 Examples
   srttidy -t < my.srt > my.txt
   srttidy -c silver *.srt
   srttidy -r < old.srt > new.srt
   srttidy -s -8.26 < old.srt > new.srt
-  srttidy -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
-  srttidy -n -d '(yts|sub2smi|elsubtitle)' *.srt
+  srttidy -b -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
+  srttidy -b -n -d '(yts|sub2smi|elsubtitle)' *.srt
   srttidy -n Movies/*/*.srt
   srttidy -g '(yts|sub2smi|elsubtitle)' *.srt
   srttidy -m 1.0,0.1 my.srt
-  # LC: line counts, CC: character counts
-  srttidy -f '(LC==1 and CC>15) or CC>20' < old.srt
-  srttidy -m 3.0,0.1 -f 'CC > 20' my.srt
+  # lc: line counts, cc: character counts
+  srttidy -f '(lc==1 and cc>15) or cc>20 or lc>1' < old.srt
+  srttidy -m 3,0.1 -f 'cc > 20' my.srt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
 USAGE
 
-my $QR_BOM = qr/\xEF\xBB\xBF/;
+my $QR_BOM = qr/^\x{FEFF}/;
 my $QR_DECIMAL = qr/[+-]?\d+\.?\d*/;
 my $QR_TIME = qr/[0-9][0-9]:[0-9][0-9]:[0-9][0-9],[0-9][0-9][0-9]/;
 my $QR_DURATION = qr/${QR_TIME} *--> *${QR_TIME} *\r?\n/;
@@ -53,7 +53,7 @@ sub say { print STDERR shift."\n"; }
 my %opts = ();
 
 # Checks the constraints of opts
-die $USAGE unless getopts("tm:c:rg:d:nl:s:h", \%opts);
+die $USAGE unless getopts("f:btm:c:rg:d:nl:s:h", \%opts);
 die $USAGE if $opts{h};
 die $USAGE if (-t STDIN and $#ARGV < 0) or (not -t STDIN and $#ARGV >= 0);
 die "Cannot use both -c and -r at the same time\n" if defined $opts{c}
@@ -66,6 +66,8 @@ die "'$opts{l}' is not valid time-map format\n" if defined $opts{l}
     and not $opts{l} =~ /^${QR_TIMEMAP}$/;
 die "'$opts{s}' is not a decimal number\n" if defined $opts{s}
     and not $opts{s} =~ /^${QR_DECIMAL}$/;
+die "'$opts{f}' is not valid condition\n" if defined $opts{f}
+    and not valid_condition($opts{f});
 die "Cannot use -t with the other options\n" if defined $opts{t}
     and (scalar keys %opts > 1);
 
@@ -136,12 +138,18 @@ sub tidy {
     my $content = shift;
     my $opts = shift;
 
+    # Removes BOM and CR
+    if (defined $opts{b}) {
+        $content =~ tr/\r//d;
+        $content =~ s/${QR_BOM}//;
+    }
+ 
     # Deletes subtitles including given pattern
     if (defined $opts{d}) {
         for ($content) {
             # \x08, \x09: boundary delimiters for text replacement
-            s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})
-            /\x08$2$3$4\x09/xgm;
+            s/(${QR_BOM}?[0-9]+) *(\r?\n)+\s*(${QR_DURATION})
+            /\x08$1$2$3\x09/xgm;
             # Removes a subtitle in boundary delimiters if they include pattern
             s/\x08[^\x08]*\x09[^\x08\x09]*${opts{d}}[^\x08]*//gmi;
             tr/\x08\x09//d;
@@ -152,8 +160,8 @@ sub tidy {
     if (defined $opts{g}) {
         my $buf = $content; $content = "";
         # \x08, \x09: boundary delimiters for text replacement
-        $buf =~ s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})
-                /\x08$2$3$4\x09/xgm;
+        $buf =~ s/(${QR_BOM}?[0-9]+) *(\r?\n)+\s*(${QR_DURATION})
+                /\x08$1$2$3\x09/xgm;
         while ($buf =~ /\x08[^\x08]*\x09[^\x08\x09]*${opts{g}}[^\x08]*/gmi) {
             $content .= $&;
         }
@@ -164,10 +172,10 @@ sub tidy {
     if (defined $opts{f} and not defined $opts{m}) {
         my $buf = $content; $content = "";
         # \x08, \x09: boundary delimiters for text replacement
-        $buf =~ s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})
-                /\x08$2$3$4\x09/xgm;
-        while ($buf =~ /\x08([^\x08]*\x09[^\x08\x09]*${opts{g}}[^\x08]*)/gmi) {
-            $content .= $1;
+        $buf =~ s/(${QR_BOM}?[0-9]+) *(\r?\n)+\s*(${QR_DURATION})
+                /\x08$1$2$3\x09/xgm;
+        while ($buf =~ /\x08([^\x08\x09]*)\x09([^\x08\x09]*)/gmi) {
+            $content .= "$1$2";
         }
         $content =~ tr/\x08\x09//d;
     }
@@ -181,10 +189,9 @@ sub tidy {
             # Inserts line before each order
             s/(.)(\r?\n)([0-9]+\s*\n${QR_TIME} *-->)/$1$2$2$3/gm;
             # Removes order and timestamp with blank text
-            s/^(${QR_BOM})?[0-9]+\s*\n${QR_DURATION}((\r?\n)+|\z)//gm;
-            # Removes additional '\n' when final subtitle was empty
+            s/${QR_BOM}?[0-9]+\s*\n${QR_DURATION}((\r?\n)+|\z)//gm;
             # Reorders one by one
-            s/^(${QR_BOM})?[0-9]+\s*(\r?\n${QR_DURATION})/${\++$order}$2/gm;
+            s/${QR_BOM}?[0-9]+ *(\r?\n)+\s*(${QR_DURATION})/${\++$order}$1$2/gm;
         }
     }
 
@@ -192,8 +199,9 @@ sub tidy {
     if (defined $opts{t}) {
         for ($content) {
             # \x08, \x09: boundary delimiters for text replacement
-            s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})//gm;
-            s/\s*(\r?\n)\s*/$1/gm;
+            s/\s*\n\s*/\n/gm;
+            s/${QR_BOM}?[0-9]+\s*\r?\n\s*${QR_DURATION}//gm;
+            s/ +/ /g;
             s/<\/? *[a-zA-Z]*[^>]*>//gm;
         } 
 
@@ -232,29 +240,31 @@ sub tidy {
     if (defined $opts{m}) {
         my ($md, $mg) = split(",", $opts{m});
         my $ncontent = "";
+        my $lf = '\n';
 
         for ($content) {
-            # Dummy for last element
-            s/\s*\z/\n1000000\n99:00:00,000 --> 99:59:59,000\ndummy/m;
+            # Gets my CRLF
+            /${QR_BOM}?[0-9]+ *(\r?\n)/m; $lf = $1;
             # \x09: delimiter for each (order + timestamp + text)
-            s/^(${QR_BOM})?([0-9]+)\s*(\r?\n)\s*(${QR_DURATION})/\x09$2$3$4/gm;
+            s/${QR_BOM}?([0-9]+)\s*\n\s*(${QR_DURATION})/\x09$1\n$2/gm;
+            # We need dummy last element for time gap
+            s/\z/\x091000000\n99:00:00,000 --> 99:59:59,000\n/m;
         }
 
         my ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext) = ("");
 
         # Iterates for each delimiter
         while ($content =~ /
-                \x09([0-9]+)\s*(\r?\n)(${QR_TIME})[[:blank:]]*-->[[:blank:]]*
-                (${QR_TIME}).*\r?\n([^\x09]*)/xgm) {
+                \x09([0-9]+)\n(${QR_TIME})[[:blank:]]*-->[[:blank:]]*
+                (${QR_TIME})([^\x09]*)/xgm) {
             my (
-                $order, $from, $from_s, $to, $to_s, $text
-            ) = ($1, $3, to_s($3), $4, to_s($4), $5);
+                $order, $from, $from_s, $to, $to_s, $text,
+            ) = ($1, $2, to_s($2), $3, to_s($3), $4);
 
             unless ($porder eq "") {
                 $ncontent .= analyze (
                     ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext),
-                    ($order, $from, $from_s, $to, $to_s, $text),
-                    ($md, $mg),
+                    ($from, $from_s, $to, $to_s), ($md, $mg, $lf),
                 );
             }
             ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext) =
@@ -264,20 +274,21 @@ sub tidy {
         $content = $ncontent;
     }
 
+    # Removes additional '\n' when final subtitle was empty
     $content =~ s/(\r?\n)+\z/$1/m;
     return $content;
 }
 
 # Checks if valid SubRip
 sub valid_srt {
-    return shift =~ /^(${QR_BOM})?[0-9]+\s*\n\s*${QR_DURATION}/m;
+    return shift =~ /${QR_BOM}?[0-9]+ *\r?\n\s*${QR_DURATION}/m;
 }
 
 sub analyze {
     my (
         $porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext,
-        $order, $from, $from_s, $to, $to_s, $text,
-        $md, $mg,
+        $from, $from_s, $to, $to_s,
+        $md, $mg, $lf,
     ) = @_;
 
     my $pduration = $pto_s - $pfrom_s;
@@ -312,7 +323,7 @@ sub analyze {
         say_tidy_info(
             $porder,
             "$state ($sduration))",
-            "$pfrom --> $pto\n$ptext",
+            "$pfrom --> $pto$ptext",
         );
 
         if ($new_pto_s) {
@@ -320,7 +331,7 @@ sub analyze {
             $pto = to_hms($pto_s * 1000);
         }
     }
-    return "$porder\n$pfrom --> $pto\n$ptext";
+    return "$porder$lf$pfrom --> $pto$ptext";
 }
 
 sub say_tidy_info {
@@ -364,9 +375,8 @@ sub l_shift {
 # Decodes to UTF-8
 sub conv {
     my $buf = shift;
-    my $hd = substr $buf, 0, 1280;
 
-    if (not utf8::decode $hd) {
+    if (not utf8::decode $buf) {
         require Encode;
         require Encode::Guess;
 
@@ -378,8 +388,6 @@ sub conv {
             $buf = Encode::decode("CP949", $buf);
         }
     }
-    # $buf =~ tr/\r//d;
-
     return $buf;
 }
 
@@ -401,4 +409,36 @@ sub to_hms {
     my $h = ($seconds / 3600) % 60;
 
     return sprintf("%02d:%02d:%02d,%03d", $h, $m, $s, $ms);
+}
+
+# Checks if valid condition
+sub valid_condition {
+    my $condition = shift;
+    my $buf = $condition;
+    for ($buf) {
+        s/\b(or|and|lc|cc)\b//gi;
+        s/${QR_DECIMAL}//gi;
+        s/[ \+\*\/\-()<>=]//gi;
+    }
+
+    return 0 unless $buf eq '';
+
+    for ($condition) {
+        s/\bcc\b/(-1.324)/gi;
+        s/\blc\b/(-9.234762)/gi;
+    }
+    eval $condition;
+    return not $@;
+}
+
+# Makes text tidy
+sub tidy_text {
+    my $text = shift;
+    for ($text) {
+        # Removes black lines
+        s/^\s*([^\s]*)\s*$/$1/g;
+        s/ +/ /g;
+        s/^(\r?\n)+//gm;
+    }
+    return $text;
 }

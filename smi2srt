@@ -75,9 +75,8 @@ exit $err;
 # Decodes SAMI to UTF-8
 sub conv {
     my $buf = shift;
-    my $hd = substr $buf, 0, 1280;
 
-    if (not utf8::decode $hd) {
+    if (not utf8::decode $buf) {
         require Encode;
         require Encode::Guess;
 
@@ -89,7 +88,6 @@ sub conv {
             $buf = Encode::decode("CP949", $buf);
         }
     }
-
     return $buf;
 }
 
