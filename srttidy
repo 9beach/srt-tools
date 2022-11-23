@@ -13,7 +13,7 @@ Usage: srttidy [OPTIONS] SRT-FILE [...]
 Options
   -t                    show subtitle texts only
   -c COLOR              specify default subtitle font color
-  -r                    remove specified font color
+  -r                    remove srttidy-specified font color
   -s SECOND             shift timestamps by given time in seconds
   -l TIME-MAP           correct timestamps linearly by given time map
   -n                    remove empty subtitles, and reorder lefts one-by-one
@@ -66,10 +66,13 @@ die "'$opts{l}' is not valid time-map format\n" if defined $opts{l}
     and not $opts{l} =~ /^${QR_TIMEMAP}$/;
 die "'$opts{s}' is not a decimal number\n" if defined $opts{s}
     and not $opts{s} =~ /^${QR_DECIMAL}$/;
-die "'$opts{f}' is not valid condition\n" if defined $opts{f}
-    and not valid_condition($opts{f});
 die "Cannot use -t with the other options\n" if defined $opts{t}
     and (scalar keys %opts > 1);
+if (defined $opts{f}) {
+    # '=' -> '=='
+    $opts{f} =~ s/([^><=]=)([^=])/$1=$2/g;
+    die "'$opts{f}' is not valid condition\n" unless valid_condition($opts{f});
+}
 
 # Reads from pipe
 if ($#ARGV < 0) {
@@ -179,9 +182,8 @@ sub tidy {
         while ($buf =~ /
                 \x09([0-9]+)(\r?\n)(${QR_TIME})[[:blank:]]*-->[[:blank:]]*
                 (${QR_TIME})([^\x09]*)/xgm) {
-            if (valid_expr($expr, to_s($4)-to_s($3), $5)) {
-                $content .= "$1$2$3 --> $4$5";
-            }
+            my ($ok, $lc, $cc) = matched($expr, to_s($4)-to_s($3), $5);
+            $content .= "$1$2$3 --> $4$5" if $ok;
         }
         $content =~ tr/\x08\x09//d;
     }
@@ -247,7 +249,7 @@ sub tidy {
         my $ncontent = "";
         my $lf = '\n';
         my $optf = defined $opts{f};
-        my $expr = $opts{f};
+        my $expr = $optf ? $opts{f} : '1';
 
         for ($content) {
             # Gets my CRLF
@@ -269,10 +271,12 @@ sub tidy {
             ) = ($1, $2, to_s($2), $3, to_s($3), $4);
 
             unless ($porder eq "") {
-                if (not $optf or valid_expr($expr, $pto_s-$pfrom_s, $ptext)) {
+                my ($ok, $lc, $cc) = matched($expr, $pto_s-$pfrom_s, $ptext);
+                if (not $optf or $ok) {
                     $ncontent .= analyze (
                         ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext),
                         ($from, $from_s, $to, $to_s), ($md, $mg, $lf),
+                        ($lc, $cc),
                     );
                 } else {
                     $ncontent .= "$porder$lf$pfrom --> $pto$ptext";
@@ -299,7 +303,7 @@ sub analyze {
     my (
         $porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext,
         $from, $from_s, $to, $to_s,
-        $md, $mg, $lf,
+        $md, $mg, $lf, $lc, $cc,
     ) = @_;
 
     my $pduration = $pto_s - $pfrom_s;
@@ -332,7 +336,7 @@ sub analyze {
         }
 
         say_tidy_info(
-            $porder,
+            "$porder $lc,$cc",
             "$state ($sduration))",
             "$pfrom --> $pto$ptext",
         );
@@ -449,27 +453,28 @@ sub text_counts {
         s/<\/? *[a-zA-Z]*[^>]*>//gm;
         s/^\s*([^\s]*)\s*$/$1/g;
         s/^\s*//gm;
-        s/ +/ /g;
+        s/  +/ /g;
         s/\s*\z/\n/m;
     }
     my $lc = $text =~ tr/\n//;
-    $text =~ tr/- \r\n!,\.:;—\*"'“”¿?¡!\()\[]<>『』《》｢｣<>≪≫《》〈〉//d;
+    $text =~ tr/- #&\/@…⋮\t\r\n!,\.:;—\*"'“”¿?¡!\()\[]<>『』《》｢｣≪≫《》〈〉//d;
     my $cc = length($text);
     $lc = 0 if $cc == 0;
 
     return ($lc, $cc);
 }
 
-sub valid_expr {
+sub matched {
     my $expr = shift;
     my $du = shift;
     my ($lc, $cc) = text_counts(shift);
 
-    for ($expr) {
-      s/\blc\b/($lc)/gi;
-      s/\bcc\b/($cc)/gi;
-      s/\bdu\b/($du)/gi;
-    }
+    return (1, $lc, $cc) if ($expr eq '1');
 
-    return eval($expr);
+    for ($expr) {
+        s/\blc\b/($lc)/gi;
+        s/\bcc\b/($cc)/gi;
+        s/\bdu\b/($du)/gi;
+    }
+    return (eval($expr), $lc, $cc);
 }

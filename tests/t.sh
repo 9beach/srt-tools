@@ -31,16 +31,18 @@ function chext {
 cd "$(dirname "$0")" > /dev/null 2>&1
 
 echo \# Checks SRTTIDY
-assert_ok "../srttidy -d 'lee.*ta' <s03-ascii.srt | diff - s03-ascii-d.out"
-assert_ok "../srttidy -d 'lee.*ta' <s03-ascii-bom-cr.srt | diff - s03-ascii-bom-cr-d.out"
-assert_ok "../srttidy -r -d 'lee.*ta' <s03-ascii-bom-cr.srt | diff - s03-ascii-bom-cr-d.out"
-assert_ok "../srttidy -m 2,0.1 <s03-ascii-bom-cr.srt 2> /dev/null | diff - s03-ascii-bom-cr-m.out"
-assert_ok "../srttidy -m 2,0.1 <s03-ascii.srt 2> /dev/null|diff - s03-ascii-m.out"
+assert_ok "../srttidy -f 'cc=10' < s01-utf8.srt | diff - s01-utf8-fcc10.out"
+assert_ok "../srttidy -d 'lee.*ta' < s03-ascii.srt | diff - s03-ascii-d.out"
+assert_ok "../srttidy -d 'lee.*ta' < s03-ascii-bom-cr.srt | diff - s03-ascii-bom-cr-d.out"
+assert_ok "../srttidy -r -d 'lee.*ta' < s03-ascii-bom-cr.srt | diff - s03-ascii-bom-cr-d.out"
+assert_ok "../srttidy -m 2,0.1 < s03-ascii-bom-cr.srt 2> /dev/null | diff - s03-ascii-bom-cr-m.out"
+assert_ok "../srttidy -m 2,0.1 < s03-ascii.srt 2> /dev/null|diff - s03-ascii-m.out"
 
+exit
 echo
 echo \# Checks SMI2SRT
 for i in s01*.smi; do 
-	assert_ok "../smi2srt <\"$i\" | diff - s01-utf8.srt"
+	assert_ok "../smi2srt < \"$i\" | diff - s01-utf8.srt"
 done
 
 cp s01-*.smi $DIR
@@ -51,7 +53,7 @@ for i in $DIR/s01*.srt; do
 done 
 
 for i in s02*.smi; do 
-	assert_ok "../smi2srt <\"$i\" | diff - s02-utf8.srt"
+	assert_ok "../smi2srt < \"$i\" | diff - s02-utf8.srt"
 done
 
 cp s02-*.smi $DIR
