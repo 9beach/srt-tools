@@ -36,7 +36,7 @@ Examples
   srttidy -g '(yts|sub2smi|elsubtitle)' *.srt
   srttidy -m 1.0,0.1 my.srt
   # lc: line counts, cc: character counts, du: duration in seconds
-  srttidy -f '(lc==1 and cc>15) or cc>20 or du>3.5' < old.srt
+  srttidy -f '(lc=1 and cc>15) or cc>20 or du>3.5' < old.srt
   srttidy -m 3,0.1 -f 'cc > 20 and du < 2' my.srt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
@@ -182,7 +182,8 @@ sub tidy {
         while ($buf =~ /
                 \x09([0-9]+)(\r?\n)(${QR_TIME})[[:blank:]]*-->[[:blank:]]*
                 (${QR_TIME})([^\x09]*)/xgm) {
-            my ($ok, $lc, $cc) = matched($expr, to_s($4)-to_s($3), $5);
+            my ($lc, $cc) = text_counts($5);
+            my $ok = matched($expr, to_s($4)-to_s($3), $lc, $cc);
             $content .= "$1$2$3 --> $4$5" if $ok;
         }
         $content =~ tr/\x08\x09//d;
@@ -271,9 +272,11 @@ sub tidy {
             ) = ($1, $2, to_s($2), $3, to_s($3), $4);
 
             unless ($porder eq "") {
-                my ($ok, $lc, $cc) = matched($expr, $pto_s-$pfrom_s, $ptext);
-                if (not $optf or $ok) {
-                    $ncontent .= analyze (
+                my ($lc, $cc) = text_counts($ptext);
+                my $ok = $optf ? matched($expr, $pto_s-$pfrom_s, $lc, $cc) : 1;
+
+                if ($ok) {
+                    $ncontent .= analyze(
                         ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext),
                         ($from, $from_s, $to, $to_s), ($md, $mg, $lf),
                         ($lc, $cc),
@@ -337,7 +340,7 @@ sub analyze {
 
         say_tidy_info(
             "$porder $lc,$cc",
-            "$state ($sduration))",
+            "$state ($sduration)",
             "$pfrom --> $pto$ptext",
         );
 
@@ -465,16 +468,12 @@ sub text_counts {
 }
 
 sub matched {
-    my $expr = shift;
-    my $du = shift;
-    my ($lc, $cc) = text_counts(shift);
-
-    return (1, $lc, $cc) if ($expr eq '1');
+    my ($expr, $du, $lc, $cc) = @_;
 
     for ($expr) {
-        s/\blc\b/($lc)/gi;
-        s/\bcc\b/($cc)/gi;
-        s/\bdu\b/($du)/gi;
+        s/\bdu\b/$du/gi;
+        s/\blc\b/$lc/gi;
+        s/\bcc\b/$cc/gi;
     }
-    return (eval($expr), $lc, $cc);
+    return eval($expr);
 }

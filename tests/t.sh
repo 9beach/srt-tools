@@ -28,19 +28,31 @@ function chext {
         echo "$(echo "$1" | sed -e 's/\.[^\/\.]*$//').$2"
 }
 
+function quit {
+	rm -rf $DIR
+	exit 0
+}
+
 cd "$(dirname "$0")" > /dev/null 2>&1
 
-echo \# Checks SRTTIDY
-assert_ok "../srttidy -f 'cc=10' < s01-utf8.srt | diff - s01-utf8-fcc10.out"
+echo \# checks SRTTIDY
+assert_ok "../srttidy -f 'cc=10' < s01-utf8.srt | diff - s01-utf8-f.out"
+assert_ok "../srttidy -f 'cc=10' -m '10,0.1' < s01-utf8.srt 2> >(diff - s01-utf8-fm.err >&2) > /dev/null"
+assert_ok "../srttidy -f 'cc=10' -m '10,0.1' < s01-utf8.srt 2> /dev/null | diff - s01-utf8-fm.out"
+
+assert_ok "srttidy -f 'cc>26 and lc=2' -m 5,0.1 < s02-utf8.srt 2> /dev/null | diff - s02-utf8-fm.out"
+assert_ok "srttidy -f 'cc>26 and lc=2' -m 5,0.1 < s02-utf8.srt 2> >(diff - s02-utf8-fm.err >&2) > /dev/null"
+
 assert_ok "../srttidy -d 'lee.*ta' < s03-ascii.srt | diff - s03-ascii-d.out"
 assert_ok "../srttidy -d 'lee.*ta' < s03-ascii-bom-cr.srt | diff - s03-ascii-bom-cr-d.out"
 assert_ok "../srttidy -r -d 'lee.*ta' < s03-ascii-bom-cr.srt | diff - s03-ascii-bom-cr-d.out"
 assert_ok "../srttidy -m 2,0.1 < s03-ascii-bom-cr.srt 2> /dev/null | diff - s03-ascii-bom-cr-m.out"
 assert_ok "../srttidy -m 2,0.1 < s03-ascii.srt 2> /dev/null|diff - s03-ascii-m.out"
 
-exit
+quit
+
 echo
-echo \# Checks SMI2SRT
+echo \# checks SMI2SRT
 for i in s01*.smi; do 
 	assert_ok "../smi2srt < \"$i\" | diff - s01-utf8.srt"
 done
@@ -64,7 +76,7 @@ for i in $DIR/s02*.srt; do
 done 
 
 echo
-echo \# Checks TEST FIXTURES
+echo \# checks TEST FIXTURES
 assert_ok "my_iconv cp949 s01-cp949.smi | diff - s01-utf8.smi"
 assert_ok "my_iconv utf-16 s01-utf16.smi | diff - s01-utf8.smi"
 assert_ok "my_iconv utf-16 s01-utf16.smi | diff - s01-utf8.smi"
@@ -84,7 +96,7 @@ assert_ok "rm_bom_cr < s03-ascii-bom-cr-m.out | diff - s03-ascii-m.out"
 assert_ok "! diff s03-ascii-bom-cr.srt s03-ascii.srt > /dev/null"
 assert_ok "rm_bom_cr < s03-ascii-bom-cr.srt | diff - s03-ascii.srt"
 
-rm -rf $DIR
-
 echo 
 echo \# All DONE
+
+quit
