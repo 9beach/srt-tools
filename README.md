@@ -15,7 +15,7 @@
 마이크로소프트 윈도우 사용자는 [윈도우용 펄](https://strawberryperl.com)을
 설치하거나, 앱스토어에서 [WSL](https://apps.microsoft.com/store/detail/windows-subsystem-for-linux/9P9TQF7MRM4R?hl=en-us&gl=us)을 설치한 뒤 사용할 수 있습니다.
 
-WSL은 가상 리눅스 환경이라 맥이나 리눅스의 터미널과 사용법이 동일합니다. 그러나
+WSL은 가상 리눅스 환경이라 맥이나 리눅스와 사용법이 동일합니다. 그러나
 윈도우용 펄은 몇 가지 차이가 있습니다.
 
 ```
