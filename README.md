@@ -34,12 +34,14 @@ created: my.srt
 컴퓨터에 복사된 경로입니다.
 
 ```
-$ smi2srt *2020*/*.smi
+$ smi2srt *.smi
+created: 1.srt
+created: 2.srt
+...
 ```
 
-리눅스나 맥 환경에서 위와 같이 실행하면 `2020`이라는 글자가 들어간 디렉터리
-안의 모든 `smi` 파일을 이용해서 `srt`을 생성합니다. 그러나 윈도우에서는 
-다음과 같이 명령해야 합니다.
+리눅스나 맥 환경에서 위와 같이 실행하면 현재 디렉터리 안의 모든 `smi` 파일을
+`srt`로 변경합니다. 그러나 윈도우에서는 다음과 같이 명령해야 합니다.
 
 ```
 for %a in ("*.smi") do perl C:\path-to\smi2srt %a
@@ -71,7 +73,8 @@ $ smi2srt < my.smi > new.srt
 $ smi2srt < my.smi
 ```
 
-한꺼번에 많은 파일을 변환할 수도 있습니다.
+한꺼번에 많은 파일을 변환할 수도 있습니다. 이때는 `>`를 이용해서 이름을 지정할
+수 없습니다.
 
 ```
 $ smi2srt 1.smi 2.smi 3.smi
@@ -82,6 +85,9 @@ created: 3.srt
 
 ```
 $ smi2srt */*.smi
+created: folder1/1.srt
+...
+created: folderN/N.srt
 ```
 
 ## SRTTIDY
