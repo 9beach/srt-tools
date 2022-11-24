@@ -23,7 +23,8 @@ $ smi2srt my.smi
 created: my.srt
 ```
 
-리눅스나 맥의 터미널에서 위와 같이 입력하면 `my.srt`파일이 생성됩니다.
+아래에서 자세히 설명하겠지만, 리눅스나 맥의 터미널에서 위와 같이 입력하면
+`my.srt`파일이 생성됩니다.
 
 ```
 c:\> perl c:\path-to\smi2srt my.smi
@@ -37,8 +38,9 @@ created: my.srt
 $ smi2srt *2020*/*.smi
 ```
 
-위와 같이 실행하면 `2020`이라는 글자가 들어간 디렉터리 안의 모든 `smi` 파일을 
-`srt`로 고칩니다. 윈도우에서는 다음과 같이 명령해야 합니다.
+리눅스나 맥 환겨에서 위와 같이 실행하면 `2020`이라는 글자가 들어간 디렉터리
+안의 모든 `smi` 파일을 이용해서 `srt`을 생성합니다. 그러나 윈도우에서는 
+다음과 같이 명령해야 합니다.
 
 ```
 for %a in ("*.smi") do perl C:\path-to\smi2srt %a
@@ -49,7 +51,8 @@ for %a in ("*.smi") do perl C:\path-to\smi2srt %a
 
 ## SMI2SRT
 
-`smi2srt`는 [SAMI](https://ko.wikipedia.org/wiki/SAMI) 포맷의 파일을 [SubRip](https://en.wikipedia.org/wiki/SubRip) 포맷으로 변경하는 커맨드 라인
+`smi2srt`는 [SAMI](https://ko.wikipedia.org/wiki/SAMI) 포맷의 파일을
+[SubRip](https://en.wikipedia.org/wiki/SubRip) 포맷으로 변경하는 커맨드 라인
 프로그램입니다. 기본 사용법은 다음과 같습니다.
 
 ```
@@ -86,8 +89,8 @@ $ smi2srt */*.smi
 
 `srttidy`는 [SubRip](https://en.wikipedia.org/wiki/SubRip) 파일의 싱크를 맞추고
 타임스탬프를 수정하는 등 다양한 작업을 지원하는 커맨드 라인 프로그램입니다.
-특히 글자 수에 비해 표시 시간이 적은 자막만을 골라서 타임스탬프를 자동으로 
-수정하는 등 자막 번역에 필요한 강력한 기능을 제공합니다.
+특히 글자 수에 비해 표시 시간이 적은 자막만 골라서 지정한 시간으로 수정하는
+등 자막 번역에 필요한 강력한 기능을 제공합니다.
 
 다음의 헬프 메시지를 중심으로 하나씩 설명하겠습니다.
 
@@ -140,12 +143,20 @@ Lolita, light of my life,
 
 3
 00:00:35,000 --> 00:00:35,575
-fire of my loins.
-My sin, my soul.
+fire of my loins. My sin, my soul.
 
-5
+4
 00:00:40,000 --> 00:00:42,000
 <font color=red><i>Lo-lee-ta:</i></font>
+
+6
+00:00:45,000 --> 00:00:50,469
+the tip of the tongue taking a trip of
+three steps down the palate to tap,
+
+7
+00:00:50,000 --> 00:00:50,635
+at three, on the teeth. Lo. Lee. Ta.
 ```
 
 ### 텍스트만 추출하기
@@ -155,9 +166,13 @@ My sin, my soul.
 ```
 $ srttidy -t < my.srt
 Lolita, light of my life,
-fire of my loins.
-My sin, my soul.
+fire of my loins. My sin, my soul.
 Lo-lee-ta:
+the tip of the tongue taking a trip of
+three steps down the palate to tap,
+at three, on the teeth. Lo. Lee. Ta.
+```
+
 ```
 
 아래의 두 명령과 비교해 보세요.
@@ -189,7 +204,7 @@ $ smi2srt < my.smi | srttidy -t
 ```
 $ srttidy -c silver my.srt
 created: my-tidy.srt
-$ srttidy -c silver < my.srt > my.srt
+$ srttidy -c gray < my.srt > my.srt
 ```
 
 물론 별도로 색깔이 지정된 폰트는 변경하지 않습니다. 기본인 하얀 색만 원하는
@@ -214,7 +229,7 @@ $ srttidy -r < my-tidy.srt > my-org.srt
 $ srttidy -s 2.1 < my.srt > new.srt
 ```
 
-반대로 앞으로 보내고 싶다면 다음과 같이 실행합니다.
+반대로, 앞으로 보내고 싶다면 다음과 같이 실행합니다.
 
 ```
 $ srttidy -s -9.2 < my.srt > new.srt
@@ -233,8 +248,8 @@ $ srttidy -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
 ### 자막 순서 보정하기
 
 번역 과정에서 짧은 자막 두 개를 병합하는 등의 이유로 자막 번호의 순서가 맞지
-않은 경우가 있습니다. 위의 예도 첫 번째 자막에 텍스트가 비어 있고 자막 번호가
-3에서 5로 뛰는 등 순서가 맞지 않습니다. 이런 경우 다음과 같이 보정할 수
+않은 경우가 있습니다. 위의 예는 첫 번째 자막의 텍스트가 비어 있고 자막 번호가
+4에서 6으로 뛰는 등 순서가 맞지 않습니다. 이런 경우 다음과 같이 보정할 수
 있습니다.
 
 ```srt
@@ -245,10 +260,18 @@ Lolita, light of my life,
 
 2
 00:00:35,000 --> 00:00:35,575
-fire of my loins.
-My sin, my soul.
+fire of my loins. My sin, my soul.
 
 3
 00:00:40,000 --> 00:00:42,000
 <font color=red><i>Lo-lee-ta:</i></font>
+
+4
+00:00:45,000 --> 00:00:50,469
+the tip of the tongue taking a trip of
+three steps down the palate to tap,
+
+5
+00:00:50,000 --> 00:00:50,635
+at three, on the teeth. Lo. Lee. Ta.
 ```
