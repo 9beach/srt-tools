@@ -1,4 +1,4 @@
-# srt-tools
+# SRT-TOOLS
 
 `srt-tools`는 서브립(SubRip) 파일을 다양한 방식으로 수정하고 변환하는 커맨드
 라인 기반의 프로그램 모음입니다. 현재 `smi2srt`와 `srttidy`, 두 프로그램이
@@ -41,7 +41,6 @@ $ smi2srt *2020*/*.smi
 `srt`로 고칩니다. 윈도우에서는 다음과 같이 명령해야 합니다.
 
 ```
-cd working-dir
 for %a in ("*.smi") do perl C:\path-to\smi2srt %a
 ```
 
