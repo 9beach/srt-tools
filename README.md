@@ -87,6 +87,45 @@ $ smi2srt */*.smi
 특히 글자 수에 비해 표시 시간이 적은 자막만을 골라서 타임스탬프를 자동으로 
 수정하는 등 자막 번역을 하는 분을 위한 강력한 기능을 제공합니다.
 
+다음의 헬프 메시지를 중심으로 하나씩 설명합니다.
+
+```
+Usage: srttidy [OPTIONS] SRT-FILE [...]
+   or: srttidy [OPTIONS] < IN-SRT-FILE > OUT-SRT-FILE
+
+Options
+  -t                    show subtitle texts only
+  -c COLOR              specify default subtitle font color
+  -r                    remove srttidy-specified font color
+  -s SECOND             shift timestamps by given time in seconds
+  -l TIME-MAP           correct timestamps linearly by given time map
+  -n                    remove empty subtitles, and reorder lefts one-by-one
+  -d PATTERN            remove subtitles including given pattern
+  -g PATTERN            show subtitles including given pattern
+  -m DURATION,GAP       change timestamps by given minimum duration and gap
+                        in seconds
+  -f CONDITION          show or apply -m option only to subtitles matching
+                        given condition
+  -b                    remove carriage returns and BOM
+
+Examples
+  srttidy -t < my.srt > my.txt
+  srttidy -c silver *.srt
+  srttidy -r < old.srt > new.srt
+  srttidy -s -8.26 < old.srt > new.srt
+  srttidy -b -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
+  srttidy -b -n -d '(yts|sub2smi|elsubtitle)' *.srt
+  srttidy -n Movies/*/*.srt
+  srttidy -g '(yts|sub2smi|elsubtitle)' *.srt
+  srttidy -m 1.0,0.1 my.srt
+  # lc: line counts, cc: character counts, du: duration in seconds
+  srttidy -f '(lc=1 and cc>15) or cc>20 or du>3.5' < old.srt
+  srttidy -m 3,0.1 -f 'cc > 20 and du < 2' my.srt
+
+See <https://github.com/9beach/srt-tools> for updates and bug reports
+USAGE
+```
+
 다음 자막을 예로 들어 설명합니다.
 
 ```srt
