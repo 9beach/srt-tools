@@ -40,7 +40,8 @@ $ smi2srt *2020*/*.smi
 
 ## smi2srt
 
-`smi` 포맷의 파일을 `srt` 포맷으로 변경합니다.
+`smi2srt`는 [SAMI](https://ko.wikipedia.org/wiki/SAMI) 포맷의 파일을 [SubRip](https://en.wikipedia.org/wiki/SubRip) 포맷으로 변경하는 커맨드 라인
+프로그램입니다.
 
 ```
 $ smi2srt my.smi
@@ -49,8 +50,7 @@ created: my.srt
 
 이름을 지정하고 싶으면 다음과 같이 명령하세요.
 
-```
-$ smi2srt < my.smi > new.srt
+``` $ smi2srt < my.smi > new.srt
 ```
 
 `smi2srt my.smi > new.srt`가 아니라 `smi2srt < my.smi > new.srt`임에 주의하세요.
@@ -61,7 +61,8 @@ $ smi2srt < my.smi > new.srt
 $ smi2srt < my.smi
 ```
 
-한꺼번에 많은 파일을 변환할 수 있습니다.
+한꺼번에 많은 파일을 변환할 수도 있습니다.
+
 ```
 $ smi2srt 1.smi 2.smi 100.smi
 created: 1.srt
