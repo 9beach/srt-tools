@@ -89,7 +89,7 @@ $ smi2srt */*.smi
 `srttidy`는 [SubRip](https://en.wikipedia.org/wiki/SubRip) 파일의 싱크를 맞추고
 타임스탬프를 수정하는 등 다양한 작업을 지원하는 커맨드 라인 프로그램입니다.
 특히 글자 수에 비해 표시 시간이 적은 자막만 골라서 지정한 시간으로 수정하는
-등 자막 번역에 필요한 강력한 기능을 제공합니다.
+등 자막 번역에 필요한 다양한 기능을 제공합니다.
 
 다음의 헬프 메시지를 중심으로 하나씩 설명하겠습니다.
 
@@ -130,7 +130,7 @@ See <https://github.com/9beach/srt-tools> for updates and bug reports
 USAGE
 ```
 
-다음 자막을 예로 들겠습니다.
+다음 자막을 예로 사용합니다.
 
 ```srt
 1
