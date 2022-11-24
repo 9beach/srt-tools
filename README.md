@@ -68,23 +68,23 @@ $ smi2srt < my.smi > new.srt
 $ smi2srt < my.smi
 ```
 
-다음과 같이 한꺼번에 많은 파일을 변환할 수도 있습니다.
+한꺼번에 많은 파일을 변환할 수도 있습니다.
 
 ```
-$ smi2srt 1.smi 2.smi 100.smi
+$ smi2srt 1.smi 2.smi 3.smi
 created: 1.srt
 created: 2.srt
-created: 100.srt
+created: 3.srt
 ```
 
 ```
-$ smi2srt *.smi
+$ smi2srt */*.smi
 ```
 ## srttidy
 
 `srttidy`는 [SubRip](https://en.wikipedia.org/wiki/SubRip) 파일의 싱크를 맞추고
-타임 스탬프를 수정하는 등 다양한 작업을 지원하는 커맨드 라인 프로그램입니다.
-특히 글자 수에 비해 표시 시간이 작은 자막만을 골라서 타임 스탬프를 자동으로 
+타임스탬프를 수정하는 등 다양한 작업을 지원하는 커맨드 라인 프로그램입니다.
+특히 글자 수에 비해 표시 시간이 적은 자막만을 골라서 타임스탬프를 자동으로 
 수정하는 등 자막 번역을 하는 분을 위한 강력한 기능을 제공합니다.
 
 다음 자막을 예로 들어 설명합니다.
@@ -106,6 +106,10 @@ fire of my loins. My sin, my soul.
 <font color=red><i>Lo-lee-ta:</i></font>
 ```
 
+### 텍스트만 추출
+
+`-t` 옵션은 자막에서 텍스트만 추출합니다.
+
 ```
 $ srttidy -t < my.srt
 Lolita, light of my life,
@@ -113,3 +117,52 @@ fire of my loins. My sin, my soul.
 Lo-lee-ta:
 ```
 
+아래의 두 명령과 비교해 보세요.
+
+```
+$ srttidy -t my.srt
+created: my-tidy.txt
+```
+
+```
+$ srttidy -t < my.srt > my.txt
+```
+
+`<` 기호를 파일 앞에 붙이면 결과를 화면에 출력합니다. 출력된 결과를 파일로 저장하고 싶으면 `>` 기호 뒤에 저장할 파일 이름을 지정합니다. `<` 기호 없이 파일을 
+주면 `-tidy` 이름을 붙여서 새로운 파일을 만듭니다.
+
+SAMI 파일의 텍스트만 추출하고 싶다면 다음을 실행합니다.
+```
+$ smi2srt < my.smi | srttidy -t
+Lolita, light of my life,
+fire of my loins. My sin, my soul.
+Lo-lee-ta:
+```
+
+### 기폰 폰트 색깔 변경
+
+기본인 하얀 색 폰트가 눈에 거슬려 `silver`나 `gray`로 고치고 싶다면 다음과 같이
+실행합니다.
+
+```
+$ srttidy -c silver my.srt
+created: my-tidy.srt
+$ srttidy -c silver < my.srt > my.srt
+```
+
+물론 미리 색깔이 지정된 폰트는 변경되지 않습니다. 기본인 하얀 색만 원하는 색깔로
+변경됩니다.
+
+`srttidy`로 지정한 색깔을 없애고 원상 복귀하려면 다음과 같이 실행합니다.
+
+```
+$ srttidy -r my-tidy.srt
+created: my-tidy-tidy.srt
+$ srttidy -c silver < my-tidy.srt > my-org.srt
+```
+
+### 자막 싱크 조절
+
+
+
+	
