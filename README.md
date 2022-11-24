@@ -158,7 +158,9 @@ $ srttidy -c silver < my.srt > my.srt
 ```
 $ srttidy -r my-tidy.srt
 created: my-tidy-tidy.srt
-$ srttidy -c silver < my-tidy.srt > my-org.srt
+```
+```
+$ srttidy -r < my-tidy.srt > my-org.srt
 ```
 
 ### 자막 싱크 조절
