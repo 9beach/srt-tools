@@ -29,7 +29,7 @@ created: my.srt
 ```
 
 도스창에서는 위와 같이 명령해야 합니다. `c:\path-to`는 `smi2srt`가 실제로
-복사된 주소입니다.
+복사된 경로입니다.
 
 ```
 $ smi2srt *2020*/*.smi
@@ -38,7 +38,8 @@ $ smi2srt *2020*/*.smi
 `srt`로 고칩니다. 윈도우에서는 다음과 같이 명령해야 합니다.
 
 ```
-for %a in ("*.smi") do perl C:\Users\9beac\smi2srt %a
+cd working-dir
+for %a in ("*.smi") do perl C:\path-to\smi2srt %a
 ```
 이 밖에도 터미널 인코딩 등 다양한 차이가 있으니 가급적 WSL을 설치해서
 사용하세요. 이 문서는 주로 맥이나 리눅스 환경을 가정해서 설명합니다.
@@ -55,7 +56,8 @@ created: my.srt
 
 이름을 지정하고 싶으면 다음과 같이 명령하세요.
 
-``` $ smi2srt < my.smi > new.srt
+```
+$ smi2srt < my.smi > new.srt
 ```
 
 `smi2srt my.smi > new.srt`가 아니라 `smi2srt < my.smi > new.srt`임에 주의하세요.
