@@ -1,42 +1,47 @@
 # srt-tools
 
-`srt-tools`는 서브립(SubRip) 파일을 다양한 방식으로 수정하고, 변환하는 커맨드
+`srt-tools`는 서브립(SubRip) 파일을 다양한 방식으로 수정하고 변환하는 커맨드
 라인 기반의 프로그램 모음입니다. 현재 `smi2srt`와 `srttidy`, 두 프로그램이
 있습니다.
 
 ## 설치
 
 맥이나 리눅스 사용자는 `smi2srt`, `srttidy` 두 파일을 실행 경로에 등록된
-디렉터리에 복사하고 실행권한(`chmod`)을 주면 바로 사용할 수 있습니다.
+디렉터리에 복사하고 실행권한을 주면(`chmod +x smi2srt srttidy`) 바로 사용할
+수 있습니다.
 
 마이크로소프트 윈도우 사용자는 [윈도우용 펄](https://strawberryperl.com)을
 설치하거나, 앱스토어에서 [WSL](https://apps.microsoft.com/store/detail/windows-subsystem-for-linux/9P9TQF7MRM4R?hl=en-us&gl=us)을 설치한 뒤 사용할 수 있습니다.
 
-WSL은 가상 리눅스 환경이라 맥이나 리눅스와 사용법이 동일합니다. 그러나 윈도우용
-펄은 몇 가지 차이가 있습니다.
+WSL은 가상 리눅스 환경이라 맥이나 리눅스의 터미널과 사용법이 동일합니다. 그러나
+윈도우용 펄은 몇 가지 차이가 있습니다.
 
 ```
 $ smi2srt my.smi
 created: my.srt
 ```
 
-리눅스나 맥의 터미널에서 위와 같이 `smi2srt my.smi`라고 입력하면 `my.srt`파일이
-생성됩니다.
+리눅스나 맥의 터미널에서 위와 같이 입력하면 `my.srt`파일이 생성됩니다.
 
 ```
-c:\> perl c:\my-path-to\smi2srt my.smi
+c:\> perl c:\path-to\smi2srt my.smi
 created: my.srt
 ```
 
-도스창에서는 위와 같이 명령해야 합니다. `c:\my-path-to`는 `smi2srt`가 실제로
-복사된 주소로 고치세요.
+도스창에서는 위와 같이 명령해야 합니다. `c:\path-to`는 `smi2srt`가 실제로
+복사된 주소입니다.
 
 ```
 $ smi2srt *2020*/*.smi
 ```
-위의 명령어는 `2020`이라는 글자가 들어간 디렉터리 안의 모든 `smi` 파일을 
-`srt`로 고칩니다. 윈도우에서는 `perl c:\my-path-to\smi2srt *2020*\*.smi`과 같이 명령하면 작동하지 않습니다. 조금 더 복잡한 다른 방식이 있으니, 이 부분은 따로
-찾아보기 바랍니다. 이 문서는 주로 맥이나 리눅스 환경을 가정해서 설명합니다.
+위와 같이 실행하면 `2020`이라는 글자가 들어간 디렉터리 안의 모든 `smi` 파일을 
+`srt`로 고칩니다. 윈도우에서는 다음과 같이 명령해야 합니다.
+
+```
+for %a in ("*.smi") do perl C:\Users\9beac\smi2srt %a
+```
+이 밖에도 터미널 인코딩 등 다양한 차이가 있으니 가급적 WSL을 설치해서
+사용하세요. 이 문서는 주로 맥이나 리눅스 환경을 가정해서 설명합니다.
 
 ## smi2srt
 
@@ -61,7 +66,7 @@ created: my.srt
 $ smi2srt < my.smi
 ```
 
-한꺼번에 많은 파일을 변환할 수도 있습니다.
+다음과 같이 한꺼번에 많은 파일을 변환할 수도 있습니다.
 
 ```
 $ smi2srt 1.smi 2.smi 100.smi
@@ -73,3 +78,36 @@ created: 100.srt
 ```
 $ smi2srt *.smi
 ```
+## srttidy
+
+`srttidy`는 [SubRip](https://en.wikipedia.org/wiki/SubRip) 파일의 싱크를 맞추고
+타임 스탬프를 수정하는 등 다양한 작업을 지원하는 커맨드 라인 프로그램입니다.
+특히 글자 수에 비해 표시 시간이 작은 자막만을 골라서 타임 스탬프를 자동으로 
+수정하는 등 자막 번역을 하는 분을 위한 강력한 기능을 제공합니다.
+
+다음 자막을 예로 들어 설명합니다.
+
+```srt
+1
+00:00:30,000 --> 00:00:30,524
+
+2
+00:00:30,900 --> 00:00:31,000
+Lolita, light of my life,
+
+3
+00:00:35,000 --> 00:00:35,575
+fire of my loins. My sin, my soul.
+
+4
+00:00:40,000 --> 00:00:42,000
+<font color=red><i>Lo-lee-ta:</i></font>
+```
+
+```
+$ srttidy -t < my.srt
+Lolita, light of my life,
+fire of my loins. My sin, my soul.
+Lo-lee-ta:
+```
+

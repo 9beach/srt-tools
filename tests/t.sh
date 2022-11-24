@@ -1,17 +1,17 @@
 #!/bin/bash
 
 # Temporary working directory
-DIR=$(mktemp -d)
+TMPDIR=$(mktemp -d)
 
 function assert_ok {
-	cmd=$(echo $1 | sed -e 's:\.\./::g' -e 's:/var[^ ]*/::g' -e 's:/tmp[^ ]*/::g')
+	cmd=$(echo $1 | sed -e 's:\.\./::g' -e 's:/var[^ ]*/:\$tmpdir/:g' -e 's:/tmp[^ ]*/:\$tmpdir/:g')
 	(( ${#cmd} > 70 )) && cmd="${cmd:0:67}..."
 	eval "$1"
 	if [ $? -eq 0 ]; then
 		echo "# ok:" $cmd
 	else
 		echo "# not ok:" $cmd
-		rm -rf $DIR
+		rm -rf $TMPDIR
 		exit 1
 	fi
 }
@@ -29,19 +29,19 @@ function chext {
 }
 
 function quit {
-	rm -rf $DIR
+	rm -rf $TMPDIR
 	exit 0
 }
 
 cd "$(dirname "$0")" > /dev/null 2>&1
 
-echo \# checks SRTTIDY
+echo \# check SRTTIDY
 assert_ok "../srttidy -f 'cc=10' < s01-utf8.srt | diff - s01-utf8-f.out"
 assert_ok "../srttidy -f 'cc=10' -m '10,0.1' < s01-utf8.srt 2> >(diff - s01-utf8-fm.err >&2) > /dev/null"
 assert_ok "../srttidy -f 'cc=10' -m '10,0.1' < s01-utf8.srt 2> /dev/null | diff - s01-utf8-fm.out"
 
-assert_ok "srttidy -f 'cc>26 and lc=2' -m 5,0.1 < s02-utf8.srt 2> /dev/null | diff - s02-utf8-fm.out"
-assert_ok "srttidy -f 'cc>26 and lc=2' -m 5,0.1 < s02-utf8.srt 2> >(diff - s02-utf8-fm.err >&2) > /dev/null"
+assert_ok "../srttidy -f 'cc>26 and lc=2' -m 5,0.1 < s02-utf8.srt 2> /dev/null | diff - s02-utf8-fm.out"
+assert_ok "../srttidy -f 'cc>26 and lc=2' -m 5,0.1 < s02-utf8.srt 2> >(diff - s02-utf8-fm.err >&2) > /dev/null"
 
 assert_ok "../srttidy -d 'lee.*ta' < s03-ascii.srt | diff - s03-ascii-d.out"
 assert_ok "../srttidy -d 'lee.*ta' < s03-ascii-bom-cr.srt | diff - s03-ascii-bom-cr-d.out"
@@ -49,34 +49,33 @@ assert_ok "../srttidy -r -d 'lee.*ta' < s03-ascii-bom-cr.srt | diff - s03-ascii-
 assert_ok "../srttidy -m 2,0.1 < s03-ascii-bom-cr.srt 2> /dev/null | diff - s03-ascii-bom-cr-m.out"
 assert_ok "../srttidy -m 2,0.1 < s03-ascii.srt 2> /dev/null | diff - s03-ascii-m.out"
 
-quit
-
 echo
-echo \# checks SMI2SRT
+echo \# check SMI2SRT
 for i in s01*.smi; do 
-	assert_ok "../smi2srt < \"$i\" | diff - s01-utf8.srt"
+	assert_ok "../smi2srt < $i | diff - s01-utf8.srt"
 done
 
-cp s01-*.smi $DIR
-assert_ok "smi2srt $DIR/s01-*smi 2> /dev/null"
+cp s01-*.smi $TMPDIR
+assert_ok "../smi2srt $TMPDIR/s01-*smi 2> /dev/null"
+assert_ok "[ '$(ls $TMPDIR/s01-*smi | wc -l)' -eq '$(ls $TMPDIR/s01-*srt | wc -l)' ]"
 
-for i in $DIR/s01*.srt; do
-	assert_ok "diff \"$i\" s01-utf8.srt > /dev/null"
+for i in $TMPDIR/s01*.srt; do
+	assert_ok "diff $i s01-utf8.srt > /dev/null"
 done 
 
 for i in s02*.smi; do 
-	assert_ok "../smi2srt < \"$i\" | diff - s02-utf8.srt"
+	assert_ok "../smi2srt < $i | diff - s02-utf8.srt"
 done
 
-cp s02-*.smi $DIR
-assert_ok "smi2srt $DIR/s02-*smi 2> /dev/null"
-
-for i in $DIR/s02*.srt; do
-	assert_ok "diff \"$i\" s02-utf8.srt > /dev/null"
+cp s02-*.smi $TMPDIR
+assert_ok "../smi2srt $TMPDIR/s02-*smi 2> /dev/null"
+assert_ok "[ '$(ls $TMPDIR/s02-*smi | wc -l)' -eq '$(ls $TMPDIR/s02-*srt | wc -l)' ]"
+for i in $TMPDIR/s02*.srt; do
+	assert_ok "diff $i s02-utf8.srt > /dev/null"
 done 
 
 echo
-echo \# checks TEST FIXTURES
+echo \# check TEST FIXTURES
 assert_ok "my_iconv cp949 s01-cp949.smi | diff - s01-utf8.smi"
 assert_ok "my_iconv utf-16 s01-utf16.smi | diff - s01-utf8.smi"
 assert_ok "my_iconv utf-16 s01-utf16.smi | diff - s01-utf8.smi"
