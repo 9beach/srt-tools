@@ -154,8 +154,7 @@ sub tidy {
     if (has("d")) {
         for ($content) {
             # \x08, \x09: boundary delimiters for text replacement
-            s/(${QR_BOM}?[0-9]+) *(\r?\n)+\s*(${QR_DURATION})
-            /\x08$1$2$3\x09/xgm;
+            s/(${QR_BOM}?[0-9]+) *(\r?\n)+(${QR_DURATION})/\x08$1$2$3\x09/gm;
             # Removes a subtitle in boundary delimiters if they include pattern
             s/\x08[^\x08]*\x09[^\x08\x09]*${opts{d}}[^\x08]*//gmi;
             tr/\x08\x09//d;
@@ -363,8 +362,11 @@ sub say_duration_info {
     my $state = shift;
     my $text = shift;
 
-    $text =~ s/^/  /mg;
-    $text =~ s/\s*\z/\n/m;
+    for ($text) {
+        s/^/  /mg;
+        tr/\r//d;
+        s/\s*\z/\n/m;
+    }
 
     say '* '.$order.': '.$state;
     say $text;

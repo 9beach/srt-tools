@@ -1,17 +1,19 @@
 #!/bin/bash
 
 # Temporary working directory
-TMPDIR=$(mktemp -d)
+tmpdir=$(mktemp -d)
+n=0
 
 function assert_ok {
 	cmd=$(echo $1 | sed -e 's:\.\./::g' -e 's:/var[^ ]*/:\$tmpdir/:g' -e 's:/tmp[^ ]*/:\$tmpdir/:g')
-	(( ${#cmd} > 70 )) && cmd="${cmd:0:67}..."
+	(( ${#cmd} > 71 )) && cmd="${cmd:0:68}..."
 	eval "$1"
 	if [ $? -eq 0 ]; then
+		(( n++ ))
 		echo "# ok:" $cmd
 	else
 		echo "# not ok:" $cmd
-		rm -rf $TMPDIR
+		rm -rf $tmpdir
 		exit 1
 	fi
 }
@@ -29,7 +31,7 @@ function chext {
 }
 
 function quit {
-	rm -rf $TMPDIR
+	rm -rf $tmpdir
 	exit 0
 }
 
@@ -48,6 +50,8 @@ assert_ok "../srttidy -d 'lee.*ta' < s03-ascii-bom-cr.srt | diff - s03-ascii-bom
 assert_ok "../srttidy -r -d 'lee.*ta' < s03-ascii-bom-cr.srt | diff - s03-ascii-bom-cr-d.out"
 assert_ok "../srttidy -m 2,0.1 < s03-ascii-bom-cr.srt 2> /dev/null | diff - s03-ascii-bom-cr-m.out"
 assert_ok "../srttidy -m 2,0.1 < s03-ascii.srt 2> /dev/null | diff - s03-ascii-m.out"
+assert_ok "../srttidy -m 2,0.1 < s03-ascii.srt 2> >(diff - s03-ascii-m.err >&2) > /dev/null"
+assert_ok "../srttidy -m 2,0.1 < s03-ascii-bom-cr.srt 2> >(diff - s03-ascii-bom-cr-m.err >&2) > /dev/null"
 
 echo
 echo \# check SMI2SRT
@@ -55,11 +59,11 @@ for i in s01*.smi; do
 	assert_ok "../smi2srt < $i | diff - s01-utf8.srt"
 done
 
-cp s01-*.smi $TMPDIR
-assert_ok "../smi2srt $TMPDIR/s01-*smi 2> /dev/null"
-assert_ok "[ '$(ls $TMPDIR/s01-*smi | wc -l)' -eq '$(ls $TMPDIR/s01-*srt | wc -l)' ]"
+cp s01-*.smi $tmpdir
+assert_ok "../smi2srt $tmpdir/s01-*smi 2> /dev/null"
+assert_ok "[ '$(ls $tmpdir/s01-*smi | wc -l)' -eq '$(ls $tmpdir/s01-*srt | wc -l)' ]"
 
-for i in $TMPDIR/s01*.srt; do
+for i in $tmpdir/s01*.srt; do
 	assert_ok "diff $i s01-utf8.srt > /dev/null"
 done 
 
@@ -67,10 +71,10 @@ for i in s02*.smi; do
 	assert_ok "../smi2srt < $i | diff - s02-utf8.srt"
 done
 
-cp s02-*.smi $TMPDIR
-assert_ok "../smi2srt $TMPDIR/s02-*smi 2> /dev/null"
-assert_ok "[ '$(ls $TMPDIR/s02-*smi | wc -l)' -eq '$(ls $TMPDIR/s02-*srt | wc -l)' ]"
-for i in $TMPDIR/s02*.srt; do
+cp s02-*.smi $tmpdir
+assert_ok "../smi2srt $tmpdir/s02-*smi 2> /dev/null"
+assert_ok '[ "$(ls $tmpdir/s02*smi | wc -l)" -eq "$(ls $tmpdir/s02*srt | wc -l)" ]'
+for i in $tmpdir/s02*.srt; do
 	assert_ok "diff $i s02-utf8.srt > /dev/null"
 done 
 
@@ -94,8 +98,9 @@ assert_ok "! diff s03-ascii-bom-cr-m.out s03-ascii-m.out > /dev/null"
 assert_ok "rm_bom_cr < s03-ascii-bom-cr-m.out | diff - s03-ascii-m.out"
 assert_ok "! diff s03-ascii-bom-cr.srt s03-ascii.srt > /dev/null"
 assert_ok "rm_bom_cr < s03-ascii-bom-cr.srt | diff - s03-ascii.srt"
+assert_ok "diff s03-ascii-m.err s03-ascii-bom-cr-m.err"
 
 echo 
-echo \# All DONE
+echo \# all $n cases DONE
 
 quit
