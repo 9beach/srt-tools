@@ -437,8 +437,7 @@ $ srttidy -f 'lc=1 and cc>=20' -m '2,0.1' < my.srt
 $ srttidy -b < old.srt > new.srt
 ```
 
-위와 같이 실행하면 [캐리지 리턴](https://ko.wikipedia.org/wiki/캐리지_리턴)도  
-같이 제거합니다. 일반적으로 몰라도 되는 기능입니다.
+위와 같이 실행하면 [캐리지 리턴](https://ko.wikipedia.org/wiki/캐리지_리턴)도 같이 제거합니다. 일반적으로 몰라도 되는 기능입니다.
 
 ### 파일 인코딩 UTF-8으로 변경하기
 
