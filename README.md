@@ -1,7 +1,7 @@
 # SRT-TOOLS
 
-`srt-tools`는 [서브립](https://en.wikipedia.org/wiki/SubRip)(`.srt` 확장자)
-파일을 다양한 방식으로 수정하고 변환하는 커맨드
+`srt-tools`는 [서브립](https://en.wikipedia.org/wiki/SubRip)
+파일(`.srt` 확장자)을 다양한 방식으로 수정하고 변환하는 커맨드
 라인 기반의 프로그램 모음입니다. 현재 `smi2srt`와 `srttidy`, 두 프로그램이
 있습니다.
 
