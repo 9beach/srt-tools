@@ -430,14 +430,16 @@ $ srttidy -f 'lc=1 and cc>=20' -m '2,0.1' < my.srt
 
 ### 바이트 순서 표시와 캐리지 리턴 제거하기
 
-사용자 눈에 보이지는 않으나 [바이트 순서 표시](https://ko.wikipedia.org/wiki/바이트_순서_표식)(Byte Order Mark, BOM)라는 것이 문제를 일으키는 
-경우가 있습니다. `-b` 옵션으로 이것을 제거할 수 있습니다.
+사용자 눈에 보이지는 않으나
+[바이트 순서 표시](https://ko.wikipedia.org/wiki/바이트_순서_표식)라는
+것이 문제를 일으키는 경우가 있습니다. `-b` 옵션으로 이것을 제거할 수 있습니다.
 
 ```
 $ srttidy -b < old.srt > new.srt
 ```
 
-위와 같이 실행하면 [캐리지 리턴](https://ko.wikipedia.org/wiki/캐리지_리턴)도 같이 제거합니다. 일반적으로 몰라도 되는 기능입니다.
+위와 같이 실행하면 [캐리지 리턴](https://ko.wikipedia.org/wiki/캐리지_리턴)도
+같이 제거합니다. 일반적으로 몰라도 되는 기능입니다.
 
 ### 파일 인코딩 UTF-8으로 변경하기
 
@@ -445,11 +447,11 @@ $ srttidy -b < old.srt > new.srt
 인코딩은 UTF-8로 바꿉니다.
 
 ```
-$ srttidy -b < cp949.srt > utf-8.srt
+$ srttidy < cp949.srt > utf-8.srt
 ```
 
 ```
-$ srttidy -b < utf-16.srt > utf-8.srt
+$ srttidy < utf-16.srt > utf-8.srt
 ```
 
 ## 마무리
