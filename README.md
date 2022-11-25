@@ -217,8 +217,8 @@ $ srttidy -c gray < my.srt > new.srt
 
 `srttidy -c gray < my.srt > my.srt`과 같이 실행하면 기존 파일을 대체하려는 
 의도와는 달리 기존 파일의 내용을 지워버립니다. `srttidy -c gray < my.srt` 
-명령에 의한 작업을 하기 전에 먼저 `> my.srt` 명령으로 빈 파일을 만들기 
-때문입니다. 다음과 같이 실행해야 합니다.
+명령을 수행하기 전에 먼저 `> my.srt` 명령으로 빈 파일을 만들기 때문입니다.
+다음과 같이 실행해야 합니다.
 
 ```
 srttidy -c gray < my.srt > tmp.srt && [ -s tmp.srt ] && mv tmp.srt my.srt
