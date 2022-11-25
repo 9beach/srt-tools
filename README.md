@@ -425,7 +425,7 @@ $ srttidy -f 'lc=1 and cc>=15 and cc<=20' -m '2,0.1' < my.srt
 다음은 스무 글자 이상이고 한 줄인 자막의 최소 표시 시간을 3초로 지정합니다.
 
 ```
-$ srttidy -f 'lc=1 and cc>=20' -m '2,0.1' < my.srt
+$ srttidy -f 'lc=1 and cc>=20' -m '3,0.1' < my.srt
 ```
 
 ### 바이트 순서 표시와 캐리지 리턴 제거하기
@@ -448,9 +448,6 @@ $ srttidy -b < old.srt > new.srt
 
 ```
 $ srttidy < cp949.srt > utf-8.srt
-```
-
-```
 $ srttidy < utf-16.srt > utf-8.srt
 ```
 
