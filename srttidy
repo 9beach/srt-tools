@@ -35,7 +35,7 @@ Examples
   srttidy -n Movies/*/*.srt
   srttidy -g '(yts|sub2smi|elsubtitle)' *.srt
   srttidy -m 1.0,0.1 my.srt
-  # lc: line counts, cc: character counts, du: duration in seconds
+  # lc: line counts, cc: character counts, dt: duration in seconds
   srttidy -f '(lc=1 and cc>15) or cc>20 or dt>3.5' < old.srt
   srttidy -m 3,0.1 -f 'cc > 20 and dt < 2' my.srt
 
