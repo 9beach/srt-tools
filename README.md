@@ -10,7 +10,7 @@
 디렉터리에 복사하고 실행권한을 주면(`chmod +x smi2srt srttidy`) 바로 사용할
 수 있습니다.
 
-### 윈도우 사용자를 위한 부가 설명
+### 윈도우 사용자
 
 마이크로소프트 윈도우 사용자는 [윈도우용 펄](https://strawberryperl.com)을
 설치하거나, 앱스토어에서 [WSL](https://apps.microsoft.com/store/detail/windows-subsystem-for-linux/9P9TQF7MRM4R?hl=en-us&gl=us)을 설치한 뒤 사용할 수 있습니다.
@@ -178,7 +178,7 @@ three steps down the palate to tap,
 at three, on the teeth. Lo. Lee. Ta.
 ```
 
-아래의 두 명령과 비교해 보세요.
+아래의 두 명령과 비교해 봅시다.
 
 ```
 $ srttidy -t my.srt
@@ -207,11 +207,18 @@ $ smi2srt < my.smi | srttidy -t
 ```
 $ srttidy -c silver my.srt
 created: my-tidy.srt
-$ srttidy -c gray < my.srt > my.srt
+$ srttidy -c gray < my.srt > new.srt
 ```
 
 물론 별도로 색깔이 지정된 폰트는 변경하지 않습니다. 기본인 하얀색만 원하는
 색깔로 변경합니다.
+
+`srttidy -c gray < my.srt > my.srt`과 같이 실행하면 기존의 파일을 대체하는 대신
+비어있는 `my.srt`을 만듭니다. 다음과 같이 실행해야 합니다.
+
+```
+srttidy -c gray < my.srt > tmp.srt && [ -s tmp.srt ] && mv tmp.srt my.srt
+```
 
 `srttidy`로 지정한 색깔을 없애고 원상 복귀하려면 다음과 같이 실행합니다.
 
