@@ -469,4 +469,4 @@ $ srttidy < utf-16.srt > utf-8.srt
 
 앞서 밝혔듯이 대부분의 옵션은 조합해서 사용할 수 있습니다. 다양하게 시도해
 보세요. 그리고 어떠한 질문이나 의견도 환영하니
-[이슈 시스템](https://github.com/9beach/srt-tools/issues)에 남기시기 바랍니다.
+[이슈 트래커](https://github.com/9beach/srt-tools/issues)에 남기시기 바랍니다.
