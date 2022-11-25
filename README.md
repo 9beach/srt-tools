@@ -85,9 +85,10 @@ created: 3.srt
 
 ```
 $ smi2srt */*.smi
-created: folder1/1.srt
+created: dir1/1.srt
+created: dir1/2.srt
 ...
-created: folderN/N.srt
+created: dirN/M.srt
 ```
 
 ## SRTTIDY
@@ -136,7 +137,7 @@ See <https://github.com/9beach/srt-tools> for updates and bug reports
 USAGE
 ```
 
-다음 자막을 예로 사용합니다.
+다음 자막 `my.srt`를 예로 사용합니다.
 
 ```srt
 1
@@ -213,8 +214,10 @@ $ srttidy -c gray < my.srt > new.srt
 물론 별도로 색깔이 지정된 폰트는 변경하지 않습니다. 기본인 하얀색만 원하는
 색깔로 변경합니다.
 
-`srttidy -c gray < my.srt > my.srt`과 같이 실행하면 기존의 파일을 대체하는 대신
-비어있는 `my.srt`을 만듭니다. 다음과 같이 실행해야 합니다.
+`srttidy -c gray < my.srt > my.srt`과 같이 실행하면 기존의 파일을 대체하지 않고
+내용을 지워버립니다. `srttidy -c gray < my.srt` 명령으로 작업하기 전에
+`> my.srt` 명령으로 먼저 빈 파일을 만들기 때문입니다. 다음과 같이 실행해야
+합니다.
 
 ```
 srttidy -c gray < my.srt > tmp.srt && [ -s tmp.srt ] && mv tmp.srt my.srt
@@ -245,7 +248,7 @@ $ srttidy -s 2.1 < my.srt > new.srt
 $ srttidy -s -9.2 < my.srt > new.srt
 ```
 
-앞부분에서 3초 정도 차이가 나는데 뒤로 가면 0.6초로 차이가 줄어드는 경우가
+앞부분에서 3초 정도 차이 나는데 뒤로 가면 0.6초로 차이가 줄어드는 경우가
 있습니다. 이때는 관찰을 통해서 측정할 수도 있지만 잘 맞는 영문 자막을 찾은 뒤
 앞 뒤 동일한 장면을 골라 한글 자막과 영문 자막의 타임스탬프를 비교하면 확실히
 알 수 있습니다. 이런 경우 다음과 같이 명령하여 싱크를 선형으로 보정할 수
@@ -257,7 +260,7 @@ $ srttidy -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
 
 ### 자막 순서 보정하기
 
-번역 과정에서 짧은 자막 두 개를 병합하는 등의 이유로 자막 번호의 순서가 맞지
+번역 과정에서 짧은 대사 두 개를 병합하는 등의 이유로 자막 번호의 순서가 맞지
 않은 경우가 있습니다. 위의 예는 첫 번째 자막의 텍스트가 비어 있고 자막 번호가
 4에서 6으로 뛰는 등 순서가 맞지 않습니다. 이런 경우 다음과 같이 보정할 수
 있습니다.
@@ -272,16 +275,151 @@ Lolita, light of my life,
 00:00:35,000 --> 00:00:35,575
 fire of my loins. My sin, my soul.
 
-3
-00:00:40,000 --> 00:00:42,000
-<font color=red><i>Lo-lee-ta:</i></font>
+...
+```
 
-4
+대부분의 옵션은 조합해서 사용할 수 있습니다.
+
+```
+$ srttidy -n -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
+$ srttidy -n -c siver < my.srt > new.srt
+$ srttidy -s -9.2 -c gray < my.srt > new.srt
+$ srttidy -r -n < my.srt > new.srt
+```
+
+### 키워드로 자막 검색하기
+
+`the`라는 단어를 포함하는 자막만 보고 싶으면 다음과 같이 명령합니다.
+
+```
+$ srttidy -g the < my.srt
+```
+
+대소문자를 가지리 않기 때문에 위의 결과는 `THE`라는 단어를 포함한 자막도
+보여줍니다. `the` 또는 `my`로 검색 조건을 늘리고 싶으면 다음과 같이 명령합니다.
+
+```
+$ srttidy -g '(the|my)' < my.srt
+```
+
+검색 조건으로 [정규 표현식](https://ko.wikipedia.org/wiki/%EC%A0%95%EA%B7%9C_%ED%91%9C%ED%98%84%EC%8B%9D)을 지원합니다. 몇 가지 핵심적인 특징만 설명하겠습니다.
+
+- `-g '(dog|cat)'`으로 검색하면 `dog` 또는 `cat`을 포함한 자막만 보여줍니다.
+- `.`은 임의의 문자를 뜻합니다. 마침표는 `\.`로 표기합니다. `-g '(,|\.)'`로 검색하면 마침표나 쉼표가 있는 문장을 보여줍니다.
+- `-g 'dog.*cat'`으로 검색하면 `dog`이 먼저 나오고 뒤에 `cat`이 나오는 자막만 보여줍니다.
+- 사이에 글자가 0자 이상 순서대로 나오는 자막만 보여줍니다.
+
+### 키워드로 자막 삭제하기
+
+`smi2srt`라는 단어를 포함하는 자막만 삭제하고 싶으면 다음과 같이 명령합니다.
+
+```
+$ srttidy -d sub2smi < my.srt
+```
+
+위에서 설명한 `-n` 옵션과 조합하면 삭제한 뒤 자막 번호를 순차적으로 고쳐줍니다.
+
+```
+$ srttidy -n -d sub2smi < my.srt
+```
+
+`-g` 옵션과 마찬가지로 정규 표현식을 지원합니다.
+
+### 글자수, 라인수, 표시 시간으로 자막 검색하기
+
+```
+$ srttidy -f 'lc=1 and cc>20' < my.srt
+3
+00:00:35,000 --> 00:00:35,575
+fire of my loins. My sin, my soul.
+
+7
+00:00:50,000 --> 00:00:50,635
+at three, on the teeth. Lo. Lee. Ta.
+
+$ srttidy -f 'lc=2' < my.srt
+6
 00:00:45,000 --> 00:00:50,469
 the tip of the tongue taking a trip of
 three steps down the palate to tap,
 
-5
-00:00:50,000 --> 00:00:50,635
-at three, on the teeth. Lo. Lee. Ta.
+$ srttidy -f 'dt>4' < my.srt
+6
+00:00:45,000 --> 00:00:50,469
+the tip of the tongue taking a trip of
+three steps down the palate to tap,
 ```
+
+### 표시시간 보정하기
+
+자막이 너무 빨리 지나가서 읽기 힘든 경우가 있습니다. `-m` 옵션으로 자막의
+최소 표시시간을 지정해서 늘릴 수 있습니다. 다음의 예를 봅시다.
+
+```
+$ srttidy -m '1,0.1' < my.srt > new.srt
+* 1 0,0: SHORT/FIXED BUT SHORT (0.524 -> 0.800)
+  00:00:30,000 --> 00:00:30,524
+
+* 2 1,19: SHORT/FIXED (0.100 -> 1.000)
+  00:00:30,900 --> 00:00:31,000
+  Lolita, light of my life,
+
+* 3 1,24: SHORT/FIXED (0.575 -> 1.000)
+  00:00:35,000 --> 00:00:35,575
+  fire of my loins. My sin, my soul.
+
+* 6 2,58: OVERLAPPED/FIXED (5.469 -> 4.900)
+  00:00:45,000 --> 00:00:50,469
+  the tip of the tongue taking a trip of
+  three steps down the palate to tap,
+
+* 7 1,24: SHORT/FIXED (0.635 -> 1.000)
+  00:00:50,000 --> 00:00:50,635
+  at three, on the teeth. Lo. Lee. Ta.
+```
+
+`-m '1,0.1'` 옵션을 통해 최소 표시시간을 1초, 다음 자막과의 최소 간격을
+0.1초로 지정했습니다. 수행 결과는 `new.srt` 파일에 저장되었고 수행 내역이
+화면에 표시되었습니다. 첫줄부터 보겠습니다.
+
+```
+* 1 0,0: SHORT/FIXED BUT SHORT (0.524 -> 0.800)
+```
+
+`1 0,0`은 첫번째 자막이 0개의 라인과 0개의 글자를 포함한다는 뜻입니다.
+0.524초여서 기준보다 짧으니 1초로 늘리려고 했으나 다음 자막이 붙어 있어서
+0.8초로 늘렸다는 뜻입니다.
+
+```
+* 4 2,58: OVERLAPPED/FIXED (5.469 -> 4.900)
+```
+
+4번째 자막의 종료시간이 5번째 자막의 시작시간보다 늦어서 겹친 상태였고
+이를 수정했다는 메시지입니다. 이런 오류는 `-m` 옵션으로 수행하면 조건과
+무관하게 보정합니다.
+
+5번째 자막에 대한 메시지가 없는 것은 표시시간이 1초 이상이어서 수정할 필요가
+때문입니다.
+
+### 조건에 부합하는 자막만 표시시간 보정하기
+
+`-f` 옵션과 `-m` 옵션을 같이 써서 조건에 부합하는 자막만 표시시간을 보정할 
+수 있습니다.
+
+글자 수가 15 이상, 20 이하이고 한 줄인 자막의 최소 표시시간을 2초로 지정합니다.
+
+```
+$ srttidy -f 'lc=1 and cc>=15 and cc<=20' -m '2,0.1' < my.srt
+
+```
+
+글자 수가 20 이상이고 한 줄인 자막의 최소 표시시간을 3초로 지정합니다.
+
+```
+$ srttidy -f 'lc=1 and cc>=20' -m '2,0.1' < my.srt
+
+```
+
+앞서 밝혔듯이 대부분의 옵션은 조합해서 사용할 수 있습니다. 다양하게 시도해
+보세요. 그리고 질문이나 어떠한 의견도 환영하니
+[남겨주기](https://github.com/9beach/srt-tools/issues) 바랍니다.

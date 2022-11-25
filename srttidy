@@ -36,8 +36,8 @@ Examples
   srttidy -g '(yts|sub2smi|elsubtitle)' *.srt
   srttidy -m 1.0,0.1 my.srt
   # lc: line counts, cc: character counts, du: duration in seconds
-  srttidy -f '(lc=1 and cc>15) or cc>20 or du>3.5' < old.srt
-  srttidy -m 3,0.1 -f 'cc > 20 and du < 2' my.srt
+  srttidy -f '(lc=1 and cc>15) or cc>20 or dt>3.5' < old.srt
+  srttidy -m 3,0.1 -f 'cc > 20 and dt < 2' my.srt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
 USAGE
@@ -274,9 +274,8 @@ sub tidy {
 
             unless ($porder eq "") {
                 my $ok = 1;
-                my ($lc, $cc);
+                my ($lc, $cc) = text_counts($ptext);
                 if (has("f")) {
-                    ($lc, $cc) = text_counts($ptext);
                     $ok = matched($opts{f}, $pto_s-$pfrom_s, $lc, $cc);
                 }
                 if ($ok) {
@@ -307,6 +306,7 @@ sub valid_srt {
     return $srt =~ /${QR_BOM}?[0-9]+ *\r?\n\s*${QR_DURATION}/m;
 }
 
+# Checks durations and changes them up to -m option
 sub analyze {
     my (
         $porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext,
@@ -343,7 +343,7 @@ sub analyze {
             $sduration = sprintf('%.3f', $pduration);
         }
 
-        say_tidy_info(
+        say_duration_info(
             "$porder $lc,$cc",
             "$state ($sduration)",
             "$pfrom --> $pto$ptext",
@@ -357,7 +357,8 @@ sub analyze {
     return "$porder$lf$pfrom --> $pto$ptext";
 }
 
-sub say_tidy_info {
+# Tells duration update info
+sub say_duration_info {
     my $order = shift;
     my $state = shift;
     my $text = shift;
@@ -367,6 +368,21 @@ sub say_tidy_info {
 
     say '* '.$order.': '.$state;
     say $text;
+}
+
+# Shifts timestamp by given time in secconds
+sub s_shift {
+    my $t = shift;
+    my $s = shift;
+    return to_hms((to_s($t) + $s) * 1000);
+}
+
+# Shifts timestamp lenearly with slope and intercept
+sub l_shift {
+    my $t = shift;
+    my $a = shift;
+    my $b = shift;
+    return to_hms((to_s($t) * $a + $b) * 1000);
 }
 
 # Gets slope $a and intercept $b for y = ax + b
@@ -383,20 +399,6 @@ sub slope_intercept {
     my $b = $t12 - $a * $t11;
 
     return ($a, $b);
-}
-
-# Below, defines submodules
-sub s_shift {
-    my $t = shift;
-    my $s = shift;
-    return to_hms((to_s($t) + $s) * 1000);
-}
-
-sub l_shift {
-    my $t = shift;
-    my $a = shift;
-    my $b = shift;
-    return to_hms((to_s($t) * $a + $b) * 1000);
 }
 
 # Decodes to UTF-8
@@ -418,6 +420,7 @@ sub conv {
     return $buf;
 }
 
+# Converts "00:01:19,145" to "79.145"
 sub to_s {
     my $fmt = shift;
     $fmt =~ s/,/./;
@@ -425,6 +428,7 @@ sub to_s {
     return $hms[0] * 3600 + $hms[1] * 60 + $hms[2];
 }
 
+# Converts "79145" to "00:01:19,145"
 sub to_hms {
     my $millisec = shift;
     $millisec = 0 if ($millisec < 0);
@@ -438,12 +442,12 @@ sub to_hms {
     return sprintf("%02d:%02d:%02d,%03d", $h, $m, $s, $ms);
 }
 
-# Checks if valid condition
+# Checks -f option valid
 sub valid_condition {
     my $condition = shift;
     my $buf = $condition;
     for ($buf) {
-        s/\b(or|and|lc|cc|du)\b//gi;
+        s/\b(or|and|lc|cc|dt)\b//gi;
         s/${QR_DECIMAL}//gi;
         s/[ \+\*\/\-()<>=]//gi;
     }
@@ -453,9 +457,10 @@ sub valid_condition {
     for ($condition) {
         s/\bcc\b/(-1.324)/gi;
         s/\blc\b/(-9.234762)/gi;
-        s/\bdu\b/(0.123124)/gi;
+        s/\bdt\b/(0.123124)/gi;
     }
     eval $condition;
+
     return not $@;
 }
 
@@ -482,10 +487,10 @@ sub has {
 }
 
 sub matched {
-    my ($expr, $du, $lc, $cc) = @_;
+    my ($expr, $dt, $lc, $cc) = @_;
 
     for ($expr) {
-        s/\bdu\b/$du/gi;
+        s/\bdt\b/$dt/gi;
         s/\blc\b/$lc/gi;
         s/\bcc\b/$cc/gi;
     }
