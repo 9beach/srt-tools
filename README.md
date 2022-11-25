@@ -283,7 +283,7 @@ fire of my loins. My sin, my soul.
 
 ```
 $ srttidy -n -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
-$ srttidy -n -c siver < my.srt > new.srt
+$ srttidy -n -c gray < my.srt > new.srt
 $ srttidy -s -9.2 -c gray < my.srt > new.srt
 $ srttidy -r -n < my.srt > new.srt
 ```
