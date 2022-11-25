@@ -7,14 +7,13 @@
 ## 설치
 
 맥이나 리눅스 사용자는 `smi2srt`, `srttidy` 두 파일을 실행 경로에 등록된
-디렉터리에 복사하고 실행권한을 주면(`chmod +x smi2srt srttidy`) 바로 사용할
+디렉터리에 복사하고 실행 권한을 주면(`chmod +x smi2srt srttidy`) 바로 사용할
 수 있습니다.
 
 ### 윈도우 사용자
 
 마이크로소프트 윈도우 사용자는 [윈도우용 펄](https://strawberryperl.com)을
-설치하거나, 앱스토어에서 [WSL](https://apps.microsoft.com/store/detail/windows-subsystem-for-linux/9P9TQF7MRM4R?hl=en-us&gl=us)을 설치한 뒤 사용할 수 있습니다.
-
+설치하거나, [WSL](https://apps.microsoft.com/store/detail/windows-subsystem-for-linux/9P9TQF7MRM4R?hl=en-us&gl=us)을 설치한 뒤 사용할 수 있습니다.
 WSL은 가상 리눅스 환경이라 맥이나 리눅스와 사용법이 동일합니다. 그러나
 윈도우용 펄은 몇 가지 차이가 있습니다.
 
@@ -67,7 +66,8 @@ created: my.srt
 $ smi2srt < my.smi > new.srt
 ```
 
-`smi2srt my.smi > new.srt`가 아니라 `smi2srt < my.smi > new.srt`임에 주의하세요. 다음과 같이 명령하면 파일로 저장하지 않고 화면에 출력합니다.
+`smi2srt my.smi > new.srt`가 아니라 `smi2srt < my.smi > new.srt`임에 주의하세요.
+다음과 같이 명령하면 파일로 저장하지 않고 화면에 출력합니다.
 
 ```
 $ smi2srt < my.smi
@@ -95,8 +95,8 @@ created: dirN/M.srt
 
 `srttidy`는 [SubRip](https://en.wikipedia.org/wiki/SubRip) 파일의 싱크를 맞추고
 타임스탬프를 수정하는 등 다양한 작업을 지원하는 커맨드 라인 프로그램입니다.
-특히 글자 수에 비해 표시 시간이 적은 자막만 골라서 지정한 시간으로 수정하는
-등 자막 번역에 필요한 다양한 기능을 제공합니다.
+특히 글자 수에 비해 표시 시간이 적은 자막만 골라서 시간을 수정하는 등 자막
+번역에 필요한 다양한 기능을 제공합니다.
 
 다음의 헬프 메시지를 중심으로 하나씩 설명하겠습니다.
 
@@ -137,7 +137,7 @@ See <https://github.com/9beach/srt-tools> for updates and bug reports
 USAGE
 ```
 
-다음 자막 `my.srt`를 예로 사용합니다.
+다음 자막 `my.srt`를 예로 사용하겠습니다.
 
 ```srt
 1
@@ -214,8 +214,8 @@ $ srttidy -c gray < my.srt > new.srt
 물론 별도로 색깔이 지정된 폰트는 변경하지 않습니다. 기본인 하얀색만 원하는
 색깔로 변경합니다.
 
-`srttidy -c gray < my.srt > my.srt`과 같이 실행하면 기존의 파일을 대체하지 않고
-내용을 지워버립니다. `srttidy -c gray < my.srt` 명령으로 작업하기 전에
+`srttidy -c gray < my.srt > my.srt`과 같이 실행하면 의도와는 달리 기존 파일
+내용을 지워버립니다. `srttidy -c gray < my.srt` 명령에 의한 작업을 하기 전에
 `> my.srt` 명령으로 먼저 빈 파일을 만들기 때문입니다. 다음과 같이 실행해야
 합니다.
 
@@ -223,7 +223,7 @@ $ srttidy -c gray < my.srt > new.srt
 srttidy -c gray < my.srt > tmp.srt && [ -s tmp.srt ] && mv tmp.srt my.srt
 ```
 
-`srttidy`로 지정한 색깔을 없애고 원상 복귀하려면 다음과 같이 실행합니다.
+`srttidy`로 지정한 색깔을 없애고 원래대로 복구하려면 다음과 같이 실행합니다.
 
 ```
 $ srttidy -r my-tidy.srt
@@ -250,7 +250,7 @@ $ srttidy -s -9.2 < my.srt > new.srt
 
 앞부분에서 3초 정도 차이 나는데 뒤로 가면 0.6초로 차이가 줄어드는 경우가
 있습니다. 이때는 관찰을 통해서 측정할 수도 있지만 잘 맞는 영문 자막을 찾은 뒤
-앞 뒤 동일한 장면을 골라 한글 자막과 영문 자막의 타임스탬프를 비교하면 확실히
+전후반부에 한 장면씩 골라 한글 자막과 영문 자막의 타임스탬프를 비교하면 확실히
 알 수 있습니다. 이런 경우 다음과 같이 명령하여 싱크를 선형으로 보정할 수
 있습니다.
 
@@ -261,9 +261,9 @@ $ srttidy -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
 ### 자막 순서 보정하기
 
 번역 과정에서 짧은 대사 두 개를 병합하는 등의 이유로 자막 번호의 순서가 맞지
-않은 경우가 있습니다. 위의 예는 첫 번째 자막의 텍스트가 비어 있고 자막 번호가
-4에서 6으로 뛰는 등 순서가 맞지 않습니다. 이런 경우 다음과 같이 보정할 수
-있습니다.
+않은 경우가 있습니다. 위의 `my.srt` 예는 첫 번째 자막의 텍스트가 비어 있고
+자막 번호가 4에서 6으로 뛰는 등 순서가 맞지 않습니다. 이런 경우 다음과 같이
+보정합니다.
 
 ```srt
 $ srttidy -n < my.srt
@@ -275,6 +275,7 @@ Lolita, light of my life,
 00:00:35,000 --> 00:00:35,575
 fire of my loins. My sin, my soul.
 
+3
 ...
 ```
 
@@ -302,16 +303,15 @@ $ srttidy -g the < my.srt
 $ srttidy -g '(the|my)' < my.srt
 ```
 
-검색 조건으로 [정규 표현식](https://ko.wikipedia.org/wiki/%EC%A0%95%EA%B7%9C_%ED%91%9C%ED%98%84%EC%8B%9D)을 지원합니다. 몇 가지 핵심적인 특징만 설명하겠습니다.
+검색 조건은 [정규 표현식](https://ko.wikipedia.org/wiki/%EC%A0%95%EA%B7%9C_%ED%91%9C%ED%98%84%EC%8B%9D)을 지원합니다. 몇 가지 핵심적인 특징만 설명하겠습니다.
 
 - `-g '(dog|cat)'`으로 검색하면 `dog` 또는 `cat`을 포함한 자막만 보여줍니다.
 - `.`은 임의의 문자를 뜻합니다. 마침표는 `\.`로 표기합니다. `-g '(,|\.)'`로 검색하면 마침표나 쉼표가 있는 문장을 보여줍니다.
 - `-g 'dog.*cat'`으로 검색하면 `dog`이 먼저 나오고 뒤에 `cat`이 나오는 자막만 보여줍니다.
-- 사이에 글자가 0자 이상 순서대로 나오는 자막만 보여줍니다.
 
 ### 키워드로 자막 삭제하기
 
-`smi2srt`라는 단어를 포함하는 자막만 삭제하고 싶으면 다음과 같이 명령합니다.
+`smi2srt`라는 단어를 포함하는 자막만 삭제하려면 다음과 같이 명령합니다.
 
 ```
 $ srttidy -d sub2smi < my.srt
@@ -327,6 +327,9 @@ $ srttidy -n -d sub2smi < my.srt
 
 ### 글자 수, 라인 수, 표시 시간으로 자막 검색하기
 
+`lc`, `cc`, `dt`는 각각 글자 수, 라인 수, 표시 시간을 뜻합니다.
+다음의 실행 예를 살펴 보세요.
+
 ```
 $ srttidy -f 'lc=1 and cc>20' < my.srt
 3
@@ -336,13 +339,17 @@ fire of my loins. My sin, my soul.
 7
 00:00:50,000 --> 00:00:50,635
 at three, on the teeth. Lo. Lee. Ta.
+```
 
+```
 $ srttidy -f 'lc=2' < my.srt
 6
 00:00:45,000 --> 00:00:50,469
 the tip of the tongue taking a trip of
 three steps down the palate to tap,
+```
 
+```
 $ srttidy -f 'dt>4' < my.srt
 6
 00:00:45,000 --> 00:00:50,469
@@ -387,15 +394,15 @@ $ srttidy -m '1,0.1' < my.srt > new.srt
 ```
 
 `1 0,0`은 첫 번째 자막이 0개의 라인과 0개의 글자를 포함한다는 뜻입니다.
-0.524초여서 기준보다 짧으니 1초로 늘리려고 했으나 다음 자막 시작 시간을
-고려해서 0.8초로 늘렸다는 뜻입니다.
+표시 시간이 0.524초여서 기준보다 짧으니 1초로 늘리려고 했으나 다음 자막 시작
+시간을 고려해서 0.8초로 늘렸다는 뜻입니다.
 
 ```
 * 4 2,58: OVERLAPPED/FIXED (5.469 -> 4.900)
 ```
 
 4번째 자막의 종료시간이 5번째 자막의 시작시간보다 늦어서 겹친 상태였고
-이를 수정했다는 메시지입니다. 이런 오류는 `-m` 옵션으로 수행하면 조건과
+이를 수정했다는 메시지입니다. 이런 오류는 `-m` 옵션을 수행하면 조건과
 무관하게 보정합니다.
 
 5번째 자막에 대한 메시지가 없는 것은 표시 시간이 1초 이상이어서 수정할 필요가
