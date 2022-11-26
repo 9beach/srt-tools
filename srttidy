@@ -235,19 +235,6 @@ sub tidy {
         }
     }
 
-    # Displays subtitle texts only
-    if (has("t")) {
-        for ($content) {
-            s/${QR_BOM}?[0-9]+\s*\r?\n\s*${QR_DURATION}//gm;
-            s/<\/? *[a-zA-Z]*[^>]*>//gm;
-            s/^\s*//gm;
-            s/ +/ /g;
-        }
-
-        # Not srt so return
-        return $content;
-    }
-
     # Specifies default font color
     if (has("c")) {
         for ($content) {
@@ -321,6 +308,19 @@ sub tidy {
         }
 
         $content = $ncontent;
+    }
+
+    # Displays subtitle texts only
+    if (has("t")) {
+        for ($content) {
+            s/${QR_BOM}?[0-9]+\s*\r?\n\s*${QR_DURATION}//gm;
+            s/<\/? *[a-zA-Z]*[^>]*>//gm;
+            s/^\s*//gm;
+            s/ +/ /g;
+        }
+
+        # Not srt so return
+        return $content;
     }
 
     # Removes additional '\n' when final subtitle was empty

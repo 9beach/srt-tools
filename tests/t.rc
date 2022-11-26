@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# Temporary working directory
+tmpdir=$(mktemp -d)
+tmpfile=$(mktemp);
+n=0
+
+function assert_ok {
+	cmd=$(echo $1 | sed -e 's:\.\./::g' -e 's:/var[^ ]*/:\$tmpdir/:g' -e 's:/tmp[^ ]*/:\$tmpdir/:g')
+	(( ${#cmd} > 71 )) && cmd="${cmd:0:68}..."
+	eval "$1"
+	if [ $? -eq 0 ]; then
+		(( n++ ))
+		echo "# ok:" $cmd
+	else
+		echo "# not ok:" $cmd
+		rm -rf $tmpdir
+		rm -rf $tmpfile
+		exit 1
+	fi
+}
+
+function my_iconv {
+	iconv -f $1 -t utf-8 "$2"
+}
+
+function rm_bom_cr {
+	sed -e "1s/^$(printf '\357\273\277')//" -e "s/$(printf '\r')\$//" 
+}
+
+function chext {
+        echo "$(echo "$1" | sed -e 's/\.[^\/\.]*$//').$2"
+}
+
+function exit_ok {
+	rm -rf $tmpfile $tmpdir
+
+	echo \# all $n cases DONE
+
+	exit 0
+}
