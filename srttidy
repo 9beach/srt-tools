@@ -82,8 +82,8 @@ die "'$opts{l}' is not valid time-map format\n" if has("l")
 die "'$opts{s}' is not a decimal number\n" if has("s")
     and not $opts{s} =~ /^${QR_DECIMAL}$/;
 if (has("f")) {
-    # Converts '=' to '=='
     my $expr = $opts{f};
+    # Converts '=' to '=='
     $expr =~ s/([^><=]=)([^=])/$1=$2/g;
     die "'$opts{f}' is not valid condition\n" unless valid_condition($expr);
     $opts{f} = $expr;
@@ -91,9 +91,13 @@ if (has("f")) {
 # Sets $opts{"expr"}, $opts{"md"}, and $opts{"mg"}
 if (has("m")) {
     my ($md_mg, $expr) = split(";", $opts{m});
-    # Converts '=' to '=='
-    $expr =~ s/([^><=]=)([^=])/$1=$2/g if length $expr;
-    $expr =~ s/^\s*$// if length $expr;
+    $expr = "" unless length $expr;
+    for ($expr) {
+        # Converts '=' to '=='
+        s/([^><=]=)([^=])/$1=$2/g;
+        # Removes whitespace
+        s/^\s*$//;
+    }
     die "'$opts{m}' is not valid\n" unless valid_condition($expr);
     $opts{"expr"} = $expr;
 
