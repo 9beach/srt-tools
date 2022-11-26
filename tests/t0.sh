@@ -4,7 +4,7 @@ cd "$(dirname "$0")" > /dev/null 2>&1
 
 source t.rc
 
-echo \# check TEST FIXTURES
+echo \# check test FIXTURES
 assert_ok "my_iconv cp949 s01-cp949.smi | diff - s01-utf8.smi"
 assert_ok "my_iconv utf-16 s01-utf16.smi | diff - s01-utf8.smi"
 assert_ok "my_iconv utf-16 s01-utf16.smi | diff - s01-utf8.smi"

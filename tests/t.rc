@@ -34,8 +34,6 @@ function chext {
 
 function exit_ok {
 	rm -rf $tmpfile $tmpdir
-
 	echo \# all $n cases DONE
-
 	exit 0
 }

@@ -486,7 +486,7 @@ sub to_hms {
 # Checks -f option valid
 sub valid_condition {
     my $condition = shift;
-    return 1 unless length;
+    return 1 unless length $condition;
 
     my $buf = $condition;
     for ($buf) {
