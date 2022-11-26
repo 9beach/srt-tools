@@ -344,7 +344,7 @@ sub valid_srt {
     return $srt =~ /${QR_BOM}?[0-9]+ *\r?\n\s*${QR_DURATION}/m;
 }
 
-# Checks durations and changes them up to -m option
+# Checks durations, and changes them up to -m option
 sub analyze {
     my (
         $porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext,
