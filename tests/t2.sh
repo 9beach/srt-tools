@@ -4,13 +4,17 @@ cd "$(dirname "$0")" > /dev/null 2>&1
 
 source t.rc
 
-echo \# check SRTTIDY argv
-
+echo \# check argv SRTTIDY
 ../srttidy -t -m '10,0.1;cc=10' < s01-utf8.srt > /dev/null 2> $tmpfile
+assert_ok '[ $? -ne 0 ]'
 assert_ok "grep 'Cannot use both.*-t' $tmpfile > /dev/null"
-../srttidy -f 'cc=10' -m '10,0.1' < s01-utf8.srt > /dev/null 2> $tmpfile
+../srttidy -f 'cc=10' -m '10,0.1' < s01-utf8.srt 2> $tmpfile
+assert_ok '[ $? -ne 0 ]'
 assert_ok "grep 'Cannot use both.*-m' $tmpfile > /dev/null"
 assert_ok "! grep 'Cannot use both.*-t' $tmpfile > /dev/null"
+../srttidy -m '10,.1' < s01-utf8.srt 2> $tmpfile
+assert_ok '[ $? -ne 0 ]'
+assert_ok "grep '10,\.1.*not valid' $tmpfile > /dev/null"
 
 echo \# check SRTTIDY
 assert_ok "../srttidy -f 'cc=10' < s01-utf8.srt | diff - s01-utf8-f.out"

@@ -484,7 +484,6 @@ sub valid_condition {
         s/${QR_DECIMAL}//gi;
         s/[ \+\*\/\-()<>=]//gi;
     }
-
     return 0 unless $buf eq '';
 
     for ($condition) {
