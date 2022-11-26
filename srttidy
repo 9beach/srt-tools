@@ -11,19 +11,20 @@ Usage: srttidy [OPTIONS] SRT-FILE [...]
    or: srttidy [OPTIONS] < IN-SRT-FILE > OUT-SRT-FILE
 
 Options
-  -t                    show subtitle texts only
-  -c COLOR              specify default subtitle font color
-  -r                    remove srttidy-specified font color
-  -s SECOND             shift timestamps by given time in seconds
-  -l TIME-MAP           correct timestamps linearly by given time map
-  -n                    remove empty subtitles, and reorder lefts one-by-one
-  -d PATTERN            remove subtitles including given pattern
-  -g PATTERN            show subtitles including given pattern
-  -m DURATION,GAP       change timestamps by given minimum duration and gap 
-                        in seconds
-  -f CONDITION          show or apply -m option only to subtitles matching
-                        given condition
-  -b                    remove carriage returns and BOM
+  -t                      show subtitle texts only
+  -c COLOR                specify default subtitle font color
+  -r                      remove srttidy-specified font color
+  -s SECOND               shift timestamps by given time in seconds
+  -l TIME-MAP             correct timestamps linearly by given time map
+  -n                      remove empty subtitles, and reorder lefts one-by-one
+  -d PATTERN              remove subtitles including given pattern
+  -g PATTERN              show subtitles including given pattern
+  -f CONDITION            show or apply -m option only to subtitles matching
+                          given condition
+  -m DURATION,GAP[;COND]  change timestamps by given condition, minimum
+                          duration, and gap
+                          in seconds
+  -b                      remove carriage returns and BOM
 
 Examples
   srttidy -t < my.srt > my.txt
@@ -31,13 +32,13 @@ Examples
   srttidy -r < old.srt > new.srt
   srttidy -s -8.26 < old.srt > new.srt
   srttidy -b -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
-  srttidy -b -n -d '(yts|sub2smi|elsubtitle)' *.srt
-  srttidy -n Movies/*/*.srt
+  srttidy -n -d '(yts|sub2smi|elsubtitle)' *.srt
+  srttidy -b -n Movies/*/*.srt
   srttidy -g '(yts|sub2smi|elsubtitle)' *.srt
-  srttidy -m 1.0,0.1 my.srt
   # lc: line counts, cc: character counts, dt: duration in seconds
   srttidy -f '(lc=1 and cc>15) or cc>20 or dt>3.5' < old.srt
-  srttidy -m 3,0.1 -f 'cc > 20 and dt < 2' my.srt
+  srttidy -m 1.0,0.1 my.srt
+  srttidy -m '3,0.1;cc>20 and dt<2' my.srt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
 USAGE
@@ -57,24 +58,52 @@ my %opts = ();
 
 # Checks the constraints of opts
 die $USAGE unless getopts("f:btm:c:rg:d:nl:s:h", \%opts);
+
+error_exclusive("c", "r");
+error_exclusive("s", "l");
+error_exclusive("t", "c");
+error_exclusive("t", "r");
+error_exclusive("t", "b");
+error_exclusive("t", "s");
+error_exclusive("t", "l");
+error_exclusive("t", "n");
+error_exclusive("m", "t");
+error_exclusive("m", "f");
+error_exclusive("m", "g");
+
 die $USAGE if has("h");
+# Checks if both redirect and args are given
+die $USAGE if not -t STDOUT and $#ARGV >= 0;
+# Checks if (input pipe and args) or (no input pipe and no args) are given
 die $USAGE if (-t STDIN and $#ARGV < 0) or (not -t STDIN and $#ARGV >= 0);
-die "Cannot use both -c and -r at the same time\n" if has('c')
-    and has("r");
-die "Cannot use both -s and -l at the same time\n" if has("s")
-    and has("l");
 die "Cannot use -s or -l with multiple files\n" if $#ARGV > 0
     and (has("s") or has("l"));
 die "'$opts{l}' is not valid time-map format\n" if has("l")
     and not $opts{l} =~ /^${QR_TIMEMAP}$/;
 die "'$opts{s}' is not a decimal number\n" if has("s")
     and not $opts{s} =~ /^${QR_DECIMAL}$/;
-die "Cannot use -t with the other options\n" if has("t")
-    and (scalar keys %opts > 1);
 if (has("f")) {
     # Converts '=' to '=='
-    $opts{f} =~ s/([^><=]=)([^=])/$1=$2/g;
-    die "'$opts{f}' is not valid condition\n" unless valid_condition($opts{f});
+    my $expr = $opts{f};
+    $expr =~ s/([^><=]=)([^=])/$1=$2/g;
+    die "'$opts{f}' is not valid condition\n" unless valid_condition($expr);
+    $opts{f} = $expr;
+}
+# Sets $opts{"expr"}, $opts{"md"}, and $opts{"mg"}
+if (has("m")) {
+    my ($md_mg, $expr) = split(";", $opts{m});
+    # Converts '=' to '=='
+    $expr =~ s/([^><=]=)([^=])/$1=$2/g if length $expr;
+    $expr =~ s/^\s*$// if length $expr;
+    die "'$opts{m}' is not valid\n" unless valid_condition($expr);
+    $opts{"expr"} = $expr;
+
+    if ($md_mg =~ /^(\d+\.?\d*) *, *(\d+\.?\d*)$/) {
+        $opts{"md"} = $1;
+        $opts{"mg"} = $2;
+    } else {
+        die "'$opts{m}' is not valid\n";
+    }
 }
 
 # Reads from pipe
@@ -149,7 +178,7 @@ sub tidy {
         $content =~ tr/\r//d;
         $content =~ s/${QR_BOM}//;
     }
- 
+
     # Deletes subtitles including given pattern
     if (has("d")) {
         for ($content) {
@@ -174,7 +203,7 @@ sub tidy {
     }
 
     # Shows subtitles matching given condition
-    if (has("f") and not has("m")) {
+    if (has("f")) {
         my $expr = $opts{f};
         my $buf = $content; $content = "";
         # \x08, \x09: boundary delimiters for text replacement
@@ -190,7 +219,7 @@ sub tidy {
         }
         $content =~ tr/\x08\x09//d;
     }
- 
+
     # Removes blank subtitles, and reorder lefts one by one
     if (has("n")) {
         my $order = 0;
@@ -213,12 +242,12 @@ sub tidy {
             s/<\/? *[a-zA-Z]*[^>]*>//gm;
             s/^\s*//gm;
             s/ +/ /g;
-        } 
+        }
 
         # Not srt so return
         return $content;
     }
- 
+
     # Specifies default font color
     if (has("c")) {
         for ($content) {
@@ -248,7 +277,7 @@ sub tidy {
 
     # Changes timestamps by given minimum duration and gap, and reports them
     if (has("m")) {
-        my ($md, $mg) = split(",", $opts{m});
+        my ($md, $mg, $expr) = ($opts{"md"}, $opts{"mg"}, $opts{"expr"});
         my $ncontent = "";
         my $lf = "\n";
 
@@ -274,8 +303,8 @@ sub tidy {
             unless ($porder eq "") {
                 my $ok = 1;
                 my ($lc, $cc) = text_counts($ptext);
-                if (has("f")) {
-                    $ok = matched($opts{f}, $pto_s-$pfrom_s, $lc, $cc);
+                if (length $expr) {
+                    $ok = matched($expr, $pto_s-$pfrom_s, $lc, $cc);
                 }
                 if ($ok) {
                     $ncontent .= analyze(
@@ -447,6 +476,8 @@ sub to_hms {
 # Checks -f option valid
 sub valid_condition {
     my $condition = shift;
+    return 1 unless length;
+
     my $buf = $condition;
     for ($buf) {
         s/\b(or|and|lc|cc|dt)\b//gi;
@@ -481,6 +512,12 @@ sub text_counts {
     $lc = 0 if $cc == 0;
 
     return ($lc, $cc);
+}
+
+sub error_exclusive {
+    my $l = shift;
+    my $r = shift;
+    die "Cannot use both -$l and -$r at the same time\n" if has($l) and has($r);
 }
 
 sub has {

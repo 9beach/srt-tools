@@ -106,19 +106,20 @@ Usage: srttidy [OPTIONS] SRT-FILE [...]
    or: srttidy [OPTIONS] < IN-SRT-FILE > OUT-SRT-FILE
 
 Options
-  -t                    show subtitle texts only
-  -c COLOR              specify default subtitle font color
-  -r                    remove srttidy-specified font color
-  -s SECOND             shift timestamps by given time in seconds
-  -l TIME-MAP           correct timestamps linearly by given time map
-  -n                    remove empty subtitles, and reorder lefts one-by-one
-  -d PATTERN            remove subtitles including given pattern
-  -g PATTERN            show subtitles including given pattern
-  -m DURATION,GAP       change timestamps by given minimum duration and gap
-                        in seconds
-  -f CONDITION          show or apply -m option only to subtitles matching
-                        given condition
-  -b                    remove carriage returns and BOM
+  -t                      show subtitle texts only
+  -c COLOR                specify default subtitle font color
+  -r                      remove srttidy-specified font color
+  -s SECOND               shift timestamps by given time in seconds
+  -l TIME-MAP             correct timestamps linearly by given time map
+  -n                      remove empty subtitles, and reorder lefts one-by-one
+  -d PATTERN              remove subtitles including given pattern
+  -g PATTERN              show subtitles including given pattern
+  -f CONDITION            show or apply -m option only to subtitles matching
+                          given condition
+  -m DURATION,GAP[;COND]  change timestamps by given condition, minimum
+                          duration, and gap
+                          in seconds
+  -b                      remove carriage returns and BOM
 
 Examples
   srttidy -t < my.srt > my.txt
@@ -126,16 +127,15 @@ Examples
   srttidy -r < old.srt > new.srt
   srttidy -s -8.26 < old.srt > new.srt
   srttidy -b -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
-  srttidy -b -n -d '(yts|sub2smi|elsubtitle)' *.srt
-  srttidy -n Movies/*/*.srt
+  srttidy -n -d '(yts|sub2smi|elsubtitle)' *.srt
+  srttidy -b -n Movies/*/*.srt
   srttidy -g '(yts|sub2smi|elsubtitle)' *.srt
-  srttidy -m 1.0,0.1 my.srt
   # lc: line counts, cc: character counts, dt: duration in seconds
   srttidy -f '(lc=1 and cc>15) or cc>20 or dt>3.5' < old.srt
-  srttidy -m 3,0.1 -f 'cc > 20 and dt < 2' my.srt
+  srttidy -m 1.0,0.1 my.srt
+  srttidy -m '3,0.1;cc>20 and dt<2' my.srt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
-USAGE
 ```
 
 다음의 `my.srt`를 예로 사용하겠습니다.
@@ -424,20 +424,30 @@ $ srttidy -n -m '1,0.1' < my.srt > new.srt
 
 ### 조건에 부합하는 자막만 표시 시간 보정하기
 
-`-f` 옵션과 `-m` 옵션을 같이 써서 조건에 부합하는 자막만 표시 시간을 보정할 
+`-m` 옵션에 부가 조건을 줘서 조건에 부합하는 자막만 표시 시간을 보정할 
 수 있습니다.
 
 다음은 글자 수가 15 이상 20 이하이고 줄 수가 하나인 자막의 최소 표시 시간을
 2초로 지정합니다.
 
 ```
-$ srttidy -f 'lc=1 and cc>=15 and cc<=20' -m '2,0.1' < my.srt
+$ srttidy -m '2,0.1;lc=1 and cc>=15 and cc<=20' < my.srt > new.srt
+* 2 1,19: SHORT/FIXED (0.100 -> 2.000)
+  00:00:30,900 --> 00:00:31,000
+  Lolita, light of my life,
 ```
 
 다음은 스무 글자 이상이고 한 줄인 자막의 최소 표시 시간을 3초로 지정합니다.
 
 ```
-$ srttidy -f 'lc=1 and cc>=20' -m '3,0.1' < my.srt
+$ srttidy -m '3,0.1;lc=1 and cc>=20' < my.srt > new.srt
+* 3 1,24: SHORT/FIXED (0.575 -> 3.000)
+  00:00:35,000 --> 00:00:35,575
+  fire of my loins. My sin, my soul.
+
+* 7 1,24: SHORT/FIXED (0.635 -> 3.000)
+  00:00:50,000 --> 00:00:50,635
+  at three, on the teeth. Lo. Lee. Ta.
 ```
 
 ### 바이트 순서 표시와 캐리지 리턴 제거하기
