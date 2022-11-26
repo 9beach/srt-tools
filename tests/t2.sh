@@ -4,19 +4,16 @@ cd "$(dirname "$0")" > /dev/null 2>&1
 
 source t.rc
 
-echo \# check argv SRTTIDY
-../srttidy -t -m '10,0.1;cc=10' < s01-utf8.srt > /dev/null 2> $tmpfile
-assert_ok '[ $? -ne 0 ]'
-assert_ok "grep 'Cannot use both.*-t' $tmpfile > /dev/null"
-../srttidy -f 'cc=10' -m '10,0.1' < s01-utf8.srt 2> $tmpfile
-assert_ok '[ $? -ne 0 ]'
-assert_ok "grep 'Cannot use both.*-m' $tmpfile > /dev/null"
-assert_ok "! grep 'Cannot use both.*-t' $tmpfile > /dev/null"
-../srttidy -m '10,.1' < s01-utf8.srt 2> $tmpfile
-assert_ok '[ $? -ne 0 ]'
-assert_ok "grep '10,\.1.*not valid' $tmpfile > /dev/null"
-
 echo \# check SRTTIDY
+assert_ok "../srttidy -n < my.srt | diff - my-n.out"
+assert_ok "../srttidy -n -d 'teeth' < my.srt | diff - my-nd.out"
+assert_ok "../srttidy -n -g 'my' < my.srt | diff - my-ng.out"
+assert_ok "../srttidy -c silver < my.srt | diff - my-c.out"
+assert_ok "../srttidy -r < my-c.err | diff - my.srt"
+
+assert_ok "../srttidy -s 32.1 < s01-utf16.srt | diff - s01-utf16-s.out"
+assert_ok "../srttidy -l '00:00:19,145->00:00:22,189 01:39:17,715->02:39:18,390' < s01-utf16.srt | diff - s01-utf16-l.out"
+
 assert_ok "../srttidy -f 'cc=10' < s01-utf8.srt | diff - s01-utf8-f.out"
 assert_ok "../srttidy -m '10,0.1;cc=10' < s01-utf8.srt 2> >(diff - s01-utf8-fm.err >&2) > /dev/null"
 assert_ok "../srttidy -m '10,0.1;cc=10' < s01-utf8.srt 2> /dev/null | diff - s01-utf8-fm.out"
@@ -31,5 +28,17 @@ assert_ok "../srttidy -m 2,0.1 < s03-ascii-bom-cr.srt 2> /dev/null | diff - s03-
 assert_ok "../srttidy -m 2,0.1 < s03-ascii.srt 2> /dev/null | diff - s03-ascii-m.out"
 assert_ok "../srttidy -m 2,0.1 < s03-ascii.srt 2> >(diff - s03-ascii-m.err >&2) > /dev/null"
 assert_ok "../srttidy -m 2,0.1 < s03-ascii-bom-cr.srt 2> >(diff - s03-ascii-bom-cr-m.err >&2) > /dev/null"
+
+echo \# check srttidy ARGV
+../srttidy -t -m '10,0.1;cc=10' < s01-utf8.srt > /dev/null 2> $tmpfile
+assert_ok '[ $? -ne 0 ]'
+assert_ok "grep 'Cannot use both.*-t' $tmpfile > /dev/null"
+../srttidy -f 'cc=10' -m '10,0.1' < s01-utf8.srt 2> $tmpfile
+assert_ok '[ $? -ne 0 ]'
+assert_ok "grep 'Cannot use both.*-m' $tmpfile > /dev/null"
+assert_ok "! grep 'Cannot use both.*-t' $tmpfile > /dev/null"
+../srttidy -m '10,.1' < s01-utf8.srt 2> $tmpfile
+assert_ok '[ $? -ne 0 ]'
+assert_ok "grep '10,\.1.*not valid' $tmpfile > /dev/null"
 
 exit_ok

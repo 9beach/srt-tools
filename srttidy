@@ -76,12 +76,15 @@ die $USAGE if (
     (-t STDIN and $#ARGV < 0) or
     (not -t STDIN and $#ARGV >= 0)
 );
-die "Cannot use -s or -l with multiple files\n" if $#ARGV > 0
-    and (has("s") or has("l"));
-die "'$opts{l}' is not valid time-map format\n" if has("l")
-    and not $opts{l} =~ /^${QR_TIMEMAP}$/;
-die "'$opts{s}' is not a decimal number\n" if has("s")
-    and not $opts{s} =~ /^${QR_DECIMAL}$/;
+if ($#ARGV > 0 and (has("s") or has("l"))) {
+    die "Cannot use -s or -l with multiple files\n";
+}
+if (has("l") and not $opts{l} =~ /^${QR_TIMEMAP}$/) {
+    die "'$opts{l}' is not valid time-map\n"
+}
+if (has("s") and not $opts{s} =~ /^${QR_DECIMAL}$/) {
+    die "'$opts{s}' is not a decimal number\n"
+}
 if (has("f")) {
     my $expr = $opts{f};
     # Converts '=' to '=='
@@ -89,7 +92,7 @@ if (has("f")) {
     die "'$opts{f}' is not valid condition\n" unless valid_condition($expr);
     $opts{f} = $expr;
 }
-# Sets $opts{"expr"}, $opts{"md"}, and $opts{"mg"}
+# Gets $opts{"expr"}, $opts{"md"}, and $opts{"mg"}
 if (has("m")) {
     my ($md_mg, $expr) = split(";", $opts{m});
     $expr = "" unless length $expr;
@@ -185,22 +188,24 @@ sub tidy {
 
     # Deletes subtitles including given pattern
     if (has("d")) {
+        my $opt = $opts{d};
         for ($content) {
             # \x08, \x09: boundary delimiters for text replacement
             s/(${QR_BOM}?[0-9]+) *(\r?\n)+(${QR_DURATION})/\x08$1$2$3\x09/gm;
-            # Removes a subtitle in boundary delimiters if they include pattern
-            s/\x08[^\x08]*\x09[^\x08\x09]*${opts{d}}[^\x08]*//gmi;
+            # Removes a subtitle matching pattern in boundary
+            s/\x08[^\x08]*\x09[^\x08\x09]*$opt[^\x08]*//gmi;
             tr/\x08\x09//d;
         }
     }
 
     # Shows subtitles including given pattern
     if (has("g")) {
+        my $opt = $opts{g};
         my $buf = $content; $content = "";
         # \x08, \x09: boundary delimiters for text replacement
         $buf =~ s/(${QR_BOM}?[0-9]+) *(\r?\n)+\s*(${QR_DURATION})
                 /\x08$1$2$3\x09/xgm;
-        while ($buf =~ /\x08[^\x08]*\x09[^\x08\x09]*${opts{g}}[^\x08]*/gmi) {
+        while ($buf =~ /\x08[^\x08]*\x09[^\x08\x09]*$opt[^\x08]*/gmi) {
             $content .= $&;
         }
         $content =~ tr/\x08\x09//d;
@@ -226,7 +231,7 @@ sub tidy {
 
     # Removes blank subtitles, and reorder lefts one by one
     if (has("n")) {
-        my $order = 0;
+        my $n = 0;
         for ($content) {
             # Removes black lines
             s/^\s*(\r?\n)+//gm;
@@ -235,15 +240,16 @@ sub tidy {
             # Removes order and timestamp with blank text
             s/${QR_BOM}?[0-9]+\s*\n${QR_DURATION}((\r?\n)+|\z)//gm;
             # Reorders one by one
-            s/${QR_BOM}?[0-9]+ *(\r?\n)+\s*(${QR_DURATION})/${\++$order}$1$2/gm;
+            s/${QR_BOM}?[0-9]+ *(\r?\n)+\s*(${QR_DURATION})/${\++$n}$1$2/gm;
         }
     }
 
     # Specifies default font color
     if (has("c")) {
+        my $opt = $opts{c};
         for ($content) {
             s/<font color[^>]* x=keep-it>//g;
-            s/(^${QR_DURATION})([^\r\n])/$1<font color=$opts{c} x=keep-it>$2/gm;
+            s/(^${QR_DURATION})([^\r\n])/$1<font color=$opt x=keep-it>$2/gm;
         }
     }
 
