@@ -19,6 +19,7 @@ my $no_pipe = -t STDIN;
 
 die $USAGE if (
     ($#ARGV >= 0 and ($ARGV[0] eq "-h" or $ARGV[0] eq "--help")) or
+    (not -t STDOUT and $#ARGV >= 0) or
     ($no_pipe and $#ARGV < 0) or
     (not $no_pipe and $#ARGV >= 0)
 ); 

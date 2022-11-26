@@ -70,11 +70,12 @@ error_exclusive("m", "t");
 error_exclusive("m", "f");
 error_exclusive("m", "g");
 
-die $USAGE if has("h");
-# Checks if both redirect and args are given
-die $USAGE if not -t STDOUT and $#ARGV >= 0;
-# Checks if (input pipe and args) or (no input pipe and no args) are given
-die $USAGE if (-t STDIN and $#ARGV < 0) or (not -t STDIN and $#ARGV >= 0);
+die $USAGE if (
+    has("h") or
+    (not -t STDOUT and $#ARGV >= 0) or
+    (-t STDIN and $#ARGV < 0) or
+    (not -t STDIN and $#ARGV >= 0)
+);
 die "Cannot use -s or -l with multiple files\n" if $#ARGV > 0
     and (has("s") or has("l"));
 die "'$opts{l}' is not valid time-map format\n" if has("l")
