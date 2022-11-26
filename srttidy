@@ -21,9 +21,8 @@ Options
   -g PATTERN              show subtitles including given pattern
   -f CONDITION            show or apply -m option only to subtitles matching
                           given condition
-  -m DURATION,GAP[;COND]  change timestamps by given condition, minimum
-                          duration, and gap
-                          in seconds
+  -m DURATION,GAP[;COND]  change timestamps by given minimum duration, gap
+                          in seconds, and condition
   -b                      remove carriage returns and BOM
 
 Examples
