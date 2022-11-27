@@ -7,6 +7,12 @@ no warnings 'utf8';
 
 use Getopt::Std;
 
+sub say;
+sub has;
+sub matched;
+sub error_exclusive;
+sub text_counts;
+
 my $USAGE = <<"USAGE";
 Usage: srttidy [OPTIONS] SRT-FILE [...]
    or: srttidy [OPTIONS] < IN-SRT-FILE > OUT-SRT-FILE
@@ -52,36 +58,36 @@ my $QR_TIMEMAP = qr/${QR_TIME}->${QR_TIME} +${QR_TIME}->${QR_TIME}/;
 my %opts = ();
 
 # Checks the constraints of opts
-die $USAGE unless getopts("f:btm:c:rg:d:nl:s:h", \%opts);
+die $USAGE unless getopts "f:btm:c:rg:d:nl:s:h", \%opts;
 
-error_exclusive("c", "r");
-error_exclusive("s", "l");
-error_exclusive("t", "c");
-error_exclusive("t", "r");
-error_exclusive("t", "b");
-error_exclusive("t", "s");
-error_exclusive("t", "l");
-error_exclusive("t", "n");
-error_exclusive("m", "t");
-error_exclusive("m", "f");
-error_exclusive("m", "g");
+error_exclusive "c", "r";
+error_exclusive "s", "l";
+error_exclusive "t", "c";
+error_exclusive "t", "r";
+error_exclusive "t", "b";
+error_exclusive "t", "s";
+error_exclusive "t", "l";
+error_exclusive "t", "n";
+error_exclusive "m", "t";
+error_exclusive "m", "f";
+error_exclusive "m", "g";
 
 die $USAGE if (
-    has("h") or
+    has "h" or
     (not -t STDOUT and $#ARGV >= 0) or
     (-t STDIN and $#ARGV < 0) or
     (not -t STDIN and $#ARGV >= 0)
 );
-if ($#ARGV > 0 and (has("s") or has("l"))) {
+if ($#ARGV > 0 and (has "s" or has "l")) {
     die "Cannot use -s or -l with multiple files\n";
 }
-if (has("l") and not $opts{l} =~ /^${QR_TIMEMAP}$/) {
+if (has "l" and not $opts{l} =~ /^${QR_TIMEMAP}$/) {
     die "'$opts{l}' is not valid time-map\n"
 }
-if (has("s") and not $opts{s} =~ /^${QR_DECIMAL}$/) {
+if (has "s" and not $opts{s} =~ /^${QR_DECIMAL}$/) {
     die "'$opts{s}' is not a decimal number\n"
 }
-if (has("f")) {
+if (has "f") {
     my $expr = $opts{f};
     # Converts '=' to '=='
     $expr =~ s/([^><=]=)([^=])/$1=$2/g;
@@ -89,7 +95,7 @@ if (has("f")) {
     $opts{f} = $expr;
 }
 # Gets $opts{"expr"}, $opts{"md"}, and $opts{"mg"}
-if (has("m")) {
+if (has "m") {
     my ($md_mg, $expr) = split(";", $opts{m});
     $expr = "" unless length $expr;
     for ($expr) {
@@ -127,7 +133,7 @@ my $err = 0;
 foreach my $srt (@ARGV) {
     my $nsrt = $srt;
     $nsrt =~ s/\.[^\/\.]*$//;
-    $nsrt .= has("t") ? "-tidy.txt" : "-tidy.srt";
+    $nsrt .= has "t" ? "-tidy.txt" : "-tidy.srt";
 
     unless (open(SRT, '<', $srt)) {
         $err = -1;
@@ -151,7 +157,7 @@ foreach my $srt (@ARGV) {
     }
 
     # Shows file name on analysis with -m
-    say "tidying: $nsrt" if (has("m"));
+    say "tidying: $nsrt" if has "m";
 
     $content = tidy($content, %opts);
     if ($content eq "") {
@@ -177,13 +183,13 @@ sub tidy {
     my $opts = shift;
 
     # Removes BOM and CR
-    if (has("b")) {
+    if (has "b") {
         $content =~ tr/\r//d;
         $content =~ s/${QR_BOM}//;
     }
 
     # Deletes subtitles including given pattern
-    if (has("d")) {
+    if (has "d") {
         my $opt = $opts{d};
         for ($content) {
             # \x08, \x09: boundary delimiters for text replacement
@@ -195,7 +201,7 @@ sub tidy {
     }
 
     # Shows subtitles including given pattern
-    if (has("g")) {
+    if (has "g") {
         my $opt = $opts{g};
         my $buf = $content; $content = "";
         # \x08, \x09: boundary delimiters for text replacement
@@ -208,7 +214,7 @@ sub tidy {
     }
 
     # Shows subtitles matching given condition
-    if (has("f")) {
+    if (has "f") {
         my $expr = $opts{f};
         my $buf = $content; $content = "";
         # \x08, \x09: boundary delimiters for text replacement
@@ -218,15 +224,15 @@ sub tidy {
         while ($buf =~ /
                 \x09([0-9]+)(\r?\n)(${QR_TIME})[[:blank:]]*-->[[:blank:]]*
                 (${QR_TIME})([^\x09]*)/xgm) {
-            my ($lc, $cc) = text_counts($5);
-            my $ok = matched($expr, to_s($4)-to_s($3), $lc, $cc);
+            my ($lc, $cc) = text_counts $5;
+            my $ok = matched $expr, to_s($4)-to_s($3), $lc, $cc;
             $content .= "$1$2$3 --> $4$5" if $ok;
         }
         $content =~ tr/\x08\x09//d;
     }
 
     # Removes blank subtitles, and reorder lefts one by one
-    if (has("n")) {
+    if (has "n") {
         my $n = 0;
         for ($content) {
             # Removes black lines
@@ -241,7 +247,7 @@ sub tidy {
     }
 
     # Specifies default font color
-    if (has("c")) {
+    if (has "c") {
         my $opt = $opts{c};
         for ($content) {
             s/<font color[^>]* x=keep-it>//g;
@@ -250,26 +256,26 @@ sub tidy {
     }
 
     # Resets specified font colors
-    if (has("r")) {
+    if (has "r") {
         $content =~ s/<font color[^>]* x=keep-it>//g;
     }
 
     # Shift timestamps
-    if (has("s")) {
+    if (has "s") {
         my $sec = $opts{s};
         $content =~ s/(${QR_TIME})[[:blank:]]*-->[[:blank:]]*(${QR_TIME})
                     /${\s_shift($1, $sec)} --> ${\s_shift($2, $sec)}/xg;
     }
 
     # Corrects timestamps linearly
-    if (has("l")) {
+    if (has "l") {
         my ($a, $b) = slope_intercept($opts{l});
         $content =~ s/(${QR_TIME})[[:blank:]]*-->[[:blank:]]*(${QR_TIME})
                     /${\l_shift($1, $a, $b)} --> ${\l_shift($2, $a, $b)}/xg;
     }
 
     # Changes timestamps by given minimum duration and gap, and reports them
-    if (has("m")) {
+    if (has "m") {
         my ($md, $mg, $expr) = ($opts{"md"}, $opts{"mg"}, $opts{"expr"});
         my $ncontent = "";
         my $lf = "\n";
@@ -295,9 +301,9 @@ sub tidy {
 
             unless ($porder eq "") {
                 my $ok = 1;
-                my ($lc, $cc) = text_counts($ptext);
+                my ($lc, $cc) = text_counts $ptext;
                 if (length $expr) {
-                    $ok = matched($expr, $pto_s-$pfrom_s, $lc, $cc);
+                    $ok = matched $expr, $pto_s-$pfrom_s, $lc, $cc;
                 }
                 if ($ok) {
                     $ncontent .= analyze(
@@ -317,7 +323,7 @@ sub tidy {
     }
 
     # Displays subtitle texts only
-    if (has("t")) {
+    if (has "t") {
         for ($content) {
             s/${QR_BOM}?[0-9]+\s*\r?\n\s*${QR_DURATION}//gm;
             s/<\/? *[a-zA-Z]*[^>]*>//gm;
@@ -377,7 +383,7 @@ sub analyze {
             $sduration = sprintf('%.3f', $pduration);
         }
 
-        say_duration_info(
+        say_timestamps_info(
             "$porder $lc,$cc",
             "$state ($sduration)",
             "$pfrom --> $pto$ptext",
@@ -392,7 +398,7 @@ sub analyze {
 }
 
 # Prints duration update info
-sub say_duration_info {
+sub say_timestamps_info {
     my $order = shift;
     my $state = shift;
     my $text = shift;
@@ -479,7 +485,7 @@ sub to_hms {
     return sprintf("%02d:%02d:%02d,%03d", $h, $m, $s, $ms);
 }
 
-# Checks if -f option value is valid
+# Checks if condition (from -f or -m) is valid
 sub valid_condition {
     my $condition = shift;
     return 1 unless length $condition;
@@ -530,7 +536,7 @@ sub text_counts {
 sub error_exclusive {
     my $l = shift;
     my $r = shift;
-    die "Cannot use both -$l and -$r at the same time\n" if has($l) and has($r);
+    die "Cannot use both -$l and -$r at the same time\n" if has $l and has $r;
 }
 
 # Checks if key is defined in %opts
@@ -540,7 +546,7 @@ sub has {
 }
 
 # Evaluates expression with given duration, line count, and character count
-# for example, say "hello" if matched("dt > 3 and lc < 5", 4, 1, 3);
+# for example, `say "hello" if matched("dt > 3 and lc < 5", 4, 1, 3);`
 sub matched {
     my ($expr, $dt, $lc, $cc) = @_;
 
