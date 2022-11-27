@@ -336,17 +336,17 @@ sub tidy {
                     $state .= '/FIXED BUT SHORT';
                 }
 
-                my $sduration;
+                my $dur_state;
                 if ($new_pto_s) {
-                    $sduration =
+                    $dur_state =
                     sprintf('%.3f -> %.3f', $pduration, $new_pto_s - $pfrom_s);
                 } else {
-                    $sduration = sprintf('%.3f', $pduration);
+                    $dur_state = sprintf('%.3f', $pduration);
                 }
 
                 say_timestamps_info(
                     "$porder $lc,$cc",
-                    "$state ($sduration)",
+                    "$state ($dur_state)",
                     "$pfrom --> $pto$ptext",
                 );
 
