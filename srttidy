@@ -7,12 +7,6 @@ no warnings 'utf8';
 
 use Getopt::Std;
 
-sub say;
-sub has;
-sub matched;
-sub error_exclusive;
-sub text_counts;
-
 my $USAGE = <<"USAGE";
 Usage: srttidy [OPTIONS] SRT-FILE [...]
    or: srttidy [OPTIONS] < IN-SRT-FILE > OUT-SRT-FILE
@@ -57,130 +51,130 @@ my $QR_TIMEMAP = qr/${QR_TIME}->${QR_TIME} +${QR_TIME}->${QR_TIME}/;
 
 my %opts = ();
 
-# Checks the constraints of opts
-die $USAGE unless getopts "f:btm:c:rg:d:nl:s:h", \%opts;
-
-error_exclusive "c", "r";
-error_exclusive "s", "l";
-error_exclusive "t", "c";
-error_exclusive "t", "r";
-error_exclusive "t", "b";
-error_exclusive "t", "s";
-error_exclusive "t", "l";
-error_exclusive "t", "n";
-error_exclusive "m", "t";
-error_exclusive "m", "f";
-error_exclusive "m", "g";
-
-die $USAGE if (
-    has "h" or
-    (not -t STDOUT and $#ARGV >= 0) or
-    (-t STDIN and $#ARGV < 0) or
-    (not -t STDIN and $#ARGV >= 0)
-);
-if ($#ARGV > 0 and (has "s" or has "l")) {
-    die "Cannot use -s or -l with multiple files\n";
-}
-if (has "l" and not $opts{l} =~ /^${QR_TIMEMAP}$/) {
-    die "'$opts{l}' is not valid time-map\n"
-}
-if (has "s" and not $opts{s} =~ /^${QR_DECIMAL}$/) {
-    die "'$opts{s}' is not a decimal number\n"
-}
-if (has "f") {
-    my $expr = $opts{f};
-    # Converts '=' to '=='
-    $expr =~ s/([^><=]=)([^=])/$1=$2/g;
-    die "'$opts{f}' is not valid condition\n" unless valid_condition($expr);
-    $opts{f} = $expr;
-}
-# Gets $opts{"expr"}, $opts{"md"}, and $opts{"mg"}
-if (has "m") {
-    my ($md_mg, $expr) = split(";", $opts{m});
-    $expr = "" unless length $expr;
-    for ($expr) {
-        # Converts '=' to '=='
-        s/([^><=]=)([^=])/$1=$2/g;
-        # Removes whitespace
-        s/^\s*$//;
-    }
-    die "'$opts{m}' is not valid\n" unless valid_condition($expr);
-    $opts{"expr"} = $expr;
-
-    if ($md_mg =~ /^(\d+\.?\d*) *, *(\d+\.?\d*)$/) {
-        $opts{"md"} = $1;
-        $opts{"mg"} = $2;
-    } else {
-        die "'$opts{m}' is not valid\n";
-    }
-}
-
-# Reads from pipe
-if ($#ARGV < 0) {
-    my $content; { local $/; $content = <STDIN> };
-    $content = conv($content);
-    die "invalid content\n" unless valid_srt($content);
-
-    $content = tidy($content, %opts);
-    print $content;
-
-    exit 0;
-}
-
-my $err = 0;
-
-# Reads ARGV files
-foreach my $srt (@ARGV) {
-    my $nsrt = $srt;
-    $nsrt =~ s/\.[^\/\.]*$//;
-    $nsrt .= has "t" ? "-tidy.txt" : "-tidy.srt";
-
-    unless (open(SRT, '<', $srt)) {
-        $err = -1;
-        say "failed to open: ${srt}";
-        next;
-    }
-    unless (open(NSRT, '>', $nsrt)) {
-        $err = -1;
-        say "failed to open: ${nsrt}";
-        close(SRT);
-        next;
-    }
-
-    my $content; { local $/; $content = <SRT> };
-    $content = conv($content);
-
-    unless (valid_srt($content)) {
-        $err = -1;
-        say "invalid content: ${srt}";
-        next;
-    }
-
-    # Shows file name on analysis with -m
-    say "tidying: $nsrt" if has "m";
-
-    $content = tidy($content, %opts);
-    if ($content eq "") {
-        say "empty content: ${srt}";
-        close(SRT);
-        close(NSRT);
-        unlink $nsrt;
-    } else {
-        say "created: ${nsrt}";
-        print NSRT $content;
-        close(SRT);
-        close(NSRT);
-    }
-}
-
-exit $err;
-
 # Defines submodules below
+#
+# Prints message to STDERR
+sub say {
+    my $out = shift;
+    print STDERR "$out\n";
+}
+
+# Checks if key is defined in %opts
+sub has {
+    my $key = shift;
+    return defined $opts{$key};
+}
+
+# Evaluates expression with given duration, line count, and character count
+# for example, `say "hello" if matched("dt > 3 and lc < 5", 4, 1, 3);`
+sub matched {
+    my ($expr, $dt, $lc, $cc) = @_;
+
+    for ($expr) {
+        s/\bdt\b/$dt/gi;
+        s/\blc\b/$lc/gi;
+        s/\bcc\b/$cc/gi;
+    }
+    return eval($expr);
+}
+
+# Checks if valid SubRip
+sub valid_srt {
+    my $srt = shift;
+    return $srt =~ /${QR_BOM}?[0-9]+ *\r?\n\s*${QR_DURATION}/m;
+}
+
+# Gets line count and character count of text
+sub text_counts {
+    my $text = shift;
+    for ($text) {
+        s/<\/? *[a-zA-Z]*[^>]*>//gm;
+        s/^\s*([^\s]*)\s*$/$1/g;
+        s/^\s*//gm;
+        s/  +/ /g;
+        s/\s*\z/\n/m;
+    }
+    my $lc = $text =~ tr/\n//;
+    $text =~ tr/- \/\t\r\n&#@…⋮!,\.:;—*"'“”¿?¡!()[]<>『』《》｢｣≪≫《》〈〉//d;
+    my $cc = length($text);
+    $lc = 0 if $cc == 0;
+
+    return ($lc, $cc);
+}
+
+# Dies with message if two exclusive options are given
+sub error_exclusive {
+    my ($l, $r) = @_;
+    die "Cannot use both -$l and -$r at the same time\n" if has $l and has $r;
+}
+
+# Decodes to UTF-8
+sub conv {
+    my $buf = shift;
+
+    if (not utf8::decode $buf) {
+        require Encode;
+        require Encode::Guess;
+
+        my $decoder = Encode::Guess::guess_encoding($buf, qw/cp949 euc-kr/);
+        if (ref($decoder)) {
+            $buf = $decoder->decode($buf);
+        } else {
+            # Fairly often it works
+            $buf = Encode::decode("CP949", $buf);
+        }
+    }
+    return $buf;
+}
+
+# Converts "00:01:19,145" to "79.145"
+sub to_s {
+    my $fmt = shift;
+    $fmt =~ s/,/./;
+    my @hms = split(":", $fmt);
+    return $hms[0] * 3600 + $hms[1] * 60 + $hms[2];
+}
+
+# Converts "79145" to "00:01:19,145"
+sub to_hms {
+    my $millisec = shift;
+    $millisec = 0 if ($millisec < 0);
+
+    my $seconds = $millisec / 1000;
+    my $ms = $millisec % 1000;
+    my $s = $seconds % 60;
+    my $m = ($seconds / 60) % 60;
+    my $h = ($seconds / 3600) % 60;
+
+    return sprintf("%02d:%02d:%02d,%03d", $h, $m, $s, $ms);
+}
+
+# Checks if condition (from -f or -m) is valid
+sub valid_condition {
+    my $condition = shift;
+    return 1 unless length $condition;
+
+    my $buf = $condition;
+    for ($buf) {
+        s/\b(or|and|lc|cc|dt)\b//gi;
+        s/${QR_DECIMAL}//gi;
+        s/[ \+\*\/\-()<>=]//gi;
+    }
+    return 0 unless $buf eq '';
+
+    for ($condition) {
+        s/\bcc\b/(-1.324)/gi;
+        s/\blc\b/(-9.234762)/gi;
+        s/\bdt\b/(0.123124)/gi;
+    }
+    eval $condition;
+
+    return not $@;
+}
 
 # Processes each option
 sub tidy {
-    my $content = shift;
-    my $opts = shift;
+    my ($content, $opts) = @_;
 
     # Removes BOM and CR
     if (has "b") {
@@ -262,16 +256,40 @@ sub tidy {
 
     # Shift timestamps
     if (has "s") {
+        # shifts timestamp by given time in secconds
+        sub s_shift {
+            my ($t, $s) = @_;
+            return to_hms((to_s($t) + $s) * 1000);
+        }
+
         my $sec = $opts{s};
         $content =~ s/(${QR_TIME})[[:blank:]]*-->[[:blank:]]*(${QR_TIME})
-                    /${\s_shift($1, $sec)} --> ${\s_shift($2, $sec)}/xg;
+                    /${\s_shift $1, $sec} --> ${\s_shift $2, $sec}/xg;
     }
 
     # Corrects timestamps linearly
     if (has "l") {
+        # Gets slope $a and intercept $b for y = ax + b
+        sub slope_intercept {
+            my $opt = shift;
+            my @m = split(/  */, $opt);
+            my @t = (split("->", $m[0]), split("->", $m[1]));
+            my @s = (to_s($t[0]), to_s($t[1]), to_s($t[2]), to_s($t[3]));
+            my $a = ($s[3] - $s[1]) / ($s[2] - $s[0]);
+            my $b = $s[1] - $a * $s[0];
+
+            return ($a, $b);
+        }
+
+        # Shifts timestamp lenearly by slope and intercept
+        sub l_shift {
+            my ($t, $a, $b) = @_;
+            return to_hms((to_s($t) * $a + $b) * 1000);
+        }
+
         my ($a, $b) = slope_intercept($opts{l});
         $content =~ s/(${QR_TIME})[[:blank:]]*-->[[:blank:]]*(${QR_TIME})
-                    /${\l_shift($1, $a, $b)} --> ${\l_shift($2, $a, $b)}/xg;
+                    /${\l_shift $1, $a, $b} --> ${\l_shift $2, $a, $b}/xg;
     }
 
     # Changes timestamps by given minimum duration and gap, and reports them
@@ -279,6 +297,66 @@ sub tidy {
         my ($md, $mg, $expr) = ($opts{"md"}, $opts{"mg"}, $opts{"expr"});
         my $ncontent = "";
         my $lf = "\n";
+
+        # Checks timestamps, and changes them to -m option
+        sub analyze {
+            my (
+                $porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext,
+                $from, $from_s, $to, $to_s, $md, $mg, $lf, $lc, $cc,
+            ) = @_;
+
+            # prints duration update info
+            sub say_timestamps_info {
+                my ($order, $state, $text) = @_;
+
+                for ($text) { s/^/  /mg; tr/\r//d; s/\s*\z/\n/m; }
+
+                say '* '.$order.': '.$state;
+                say $text;
+            }
+
+            my $pduration = $pto_s - $pfrom_s;
+
+            # Checks if duration is short, or timestamps are overlapped
+            if ($pduration < $md or $pto_s > $from_s) {
+                my $state = 'SHORT';
+                $state = 'OVERLAPPED' if $pto_s > $from_s;
+
+                my $new_pto_s = 0;
+
+                if ($pfrom_s + $md + $mg < $from_s) {
+                    if ($state eq 'SHORT') {
+                        $new_pto_s = $md + $pfrom_s;
+                    } else {
+                        $new_pto_s = $from_s - $mg;
+                    }
+                    $state .= '/FIXED';
+                } elsif ($pto_s + $mg < $from_s) {
+                    $new_pto_s = $from_s - $mg;
+                    $state .= '/FIXED BUT SHORT';
+                }
+
+                my $sduration;
+                if ($new_pto_s) {
+                    $sduration =
+                    sprintf('%.3f -> %.3f', $pduration, $new_pto_s - $pfrom_s);
+                } else {
+                    $sduration = sprintf('%.3f', $pduration);
+                }
+
+                say_timestamps_info(
+                    "$porder $lc,$cc",
+                    "$state ($sduration)",
+                    "$pfrom --> $pto$ptext",
+                );
+
+                if ($new_pto_s) {
+                    $pto_s = $new_pto_s;
+                    $pto = to_hms($pto_s * 1000);
+                }
+            }
+            return "$porder$lf$pfrom --> $pto$ptext";
+        }
 
         for ($content) {
             # Gets my CRLF
@@ -302,9 +380,8 @@ sub tidy {
             unless ($porder eq "") {
                 my $ok = 1;
                 my ($lc, $cc) = text_counts $ptext;
-                if (length $expr) {
-                    $ok = matched $expr, $pto_s-$pfrom_s, $lc, $cc;
-                }
+
+                $ok = matched $expr, $pto_s-$pfrom_s, $lc, $cc if length $expr;
                 if ($ok) {
                     $ncontent .= analyze(
                         ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext),
@@ -340,220 +417,123 @@ sub tidy {
     return $content;
 }
 
-# Checks if valid SubRip
-sub valid_srt {
-    my $srt = shift;
-    return $srt =~ /${QR_BOM}?[0-9]+ *\r?\n\s*${QR_DURATION}/m;
+# Starts main routine
+#
+# Checks the constraints of opts
+die $USAGE unless getopts "f:btm:c:rg:d:nl:s:h", \%opts;
+
+error_exclusive "c", "r";
+error_exclusive "s", "l";
+error_exclusive "t", "c";
+error_exclusive "t", "r";
+error_exclusive "t", "b";
+error_exclusive "t", "s";
+error_exclusive "t", "l";
+error_exclusive "t", "n";
+error_exclusive "m", "t";
+error_exclusive "m", "f";
+error_exclusive "m", "g";
+
+die $USAGE if (
+    has "h" or
+    (not -t STDOUT and $#ARGV >= 0) or
+    (-t STDIN and $#ARGV < 0) or
+    (not -t STDIN and $#ARGV >= 0)
+);
+if ($#ARGV > 0 and (has "s" or has "l")) {
+    die "Cannot use -s or -l with multiple files\n";
 }
-
-# Checks timestamps, and changes them to -m option
-sub analyze {
-    my (
-        $porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext,
-        $from, $from_s, $to, $to_s,
-        $md, $mg, $lf, $lc, $cc,
-    ) = @_;
-
-    my $pduration = $pto_s - $pfrom_s;
-
-    # Checks if duration is short, or timestamps are overlapped
-    if ($pduration < $md or $pto_s > $from_s) {
-        my $state = 'SHORT';
-        $state = 'OVERLAPPED' if $pto_s > $from_s;
-
-        my $new_pto_s = 0;
-
-        if ($pfrom_s + $md + $mg < $from_s) {
-            if ($state eq 'SHORT') {
-                $new_pto_s = $md + $pfrom_s;
-            } else {
-                $new_pto_s = $from_s - $mg;
-            }
-            $state .= '/FIXED';
-        } elsif ($pto_s + $mg < $from_s) {
-            $new_pto_s = $from_s - $mg;
-            $state .= '/FIXED BUT SHORT';
-        }
-
-        my $sduration;
-        if ($new_pto_s) {
-            $sduration =
-                sprintf('%.3f -> %.3f', $pduration, $new_pto_s - $pfrom_s);
-        } else {
-            $sduration = sprintf('%.3f', $pduration);
-        }
-
-        say_timestamps_info(
-            "$porder $lc,$cc",
-            "$state ($sduration)",
-            "$pfrom --> $pto$ptext",
-        );
-
-        if ($new_pto_s) {
-            $pto_s = $new_pto_s;
-            $pto = to_hms($pto_s * 1000);
-        }
-    }
-    return "$porder$lf$pfrom --> $pto$ptext";
+if (has "l" and not $opts{l} =~ /^${QR_TIMEMAP}$/) {
+    die "'$opts{l}' is not valid time-map\n"
 }
-
-# Prints duration update info
-sub say_timestamps_info {
-    my $order = shift;
-    my $state = shift;
-    my $text = shift;
-
-    for ($text) {
-        s/^/  /mg;
-        tr/\r//d;
-        s/\s*\z/\n/m;
-    }
-
-    say '* '.$order.': '.$state;
-    say $text;
+if (has "s" and not $opts{s} =~ /^${QR_DECIMAL}$/) {
+    die "'$opts{s}' is not a decimal number\n"
 }
-
-# Shifts timestamp by given time in secconds
-sub s_shift {
-    my $t = shift;
-    my $s = shift;
-    return to_hms((to_s($t) + $s) * 1000);
+if (has "f") {
+    my $expr = $opts{f};
+    # Converts '=' to '=='
+    $expr =~ s/([^><=]=)([^=])/$1=$2/g;
+    die "'$opts{f}' is not valid condition\n" unless valid_condition($expr);
+    $opts{f} = $expr;
 }
-
-# Shifts timestamp lenearly by slope and intercept
-sub l_shift {
-    my $t = shift;
-    my $a = shift;
-    my $b = shift;
-    return to_hms((to_s($t) * $a + $b) * 1000);
-}
-
-# Gets slope $a and intercept $b for y = ax + b
-sub slope_intercept {
-    my $opt = shift;
-    my @m = split(/  */, $opt);
-    my @t1 = split("->", $m[0]);
-    my @t2 = split("->", $m[1]);
-    my $t11 = to_s($t1[0]);
-    my $t12 = to_s($t1[1]);
-    my $t21 = to_s($t2[0]);
-    my $t22 = to_s($t2[1]);
-    my $a = ($t22 - $t12) / ($t21 - $t11);
-    my $b = $t12 - $a * $t11;
-
-    return ($a, $b);
-}
-
-# Decodes to UTF-8
-sub conv {
-    my $buf = shift;
-
-    if (not utf8::decode $buf) {
-        require Encode;
-        require Encode::Guess;
-
-        my $decoder = Encode::Guess::guess_encoding($buf, qw/cp949 euc-kr/);
-        if (ref($decoder)) {
-            $buf = $decoder->decode($buf);
-        } else {
-            # Fairly often it works
-            $buf = Encode::decode("CP949", $buf);
-        }
-    }
-    return $buf;
-}
-
-# Converts "00:01:19,145" to "79.145"
-sub to_s {
-    my $fmt = shift;
-    $fmt =~ s/,/./;
-    my @hms = split(":", $fmt);
-    return $hms[0] * 3600 + $hms[1] * 60 + $hms[2];
-}
-
-# Converts "79145" to "00:01:19,145"
-sub to_hms {
-    my $millisec = shift;
-    $millisec = 0 if ($millisec < 0);
-
-    my $seconds = $millisec / 1000;
-    my $ms = $millisec % 1000;
-    my $s = $seconds % 60;
-    my $m = ($seconds / 60) % 60;
-    my $h = ($seconds / 3600) % 60;
-
-    return sprintf("%02d:%02d:%02d,%03d", $h, $m, $s, $ms);
-}
-
-# Checks if condition (from -f or -m) is valid
-sub valid_condition {
-    my $condition = shift;
-    return 1 unless length $condition;
-
-    my $buf = $condition;
-    for ($buf) {
-        s/\b(or|and|lc|cc|dt)\b//gi;
-        s/${QR_DECIMAL}//gi;
-        s/[ \+\*\/\-()<>=]//gi;
-    }
-    return 0 unless $buf eq '';
-
-    for ($condition) {
-        s/\bcc\b/(-1.324)/gi;
-        s/\blc\b/(-9.234762)/gi;
-        s/\bdt\b/(0.123124)/gi;
-    }
-    eval $condition;
-
-    return not $@;
-}
-
-# Prints message to STDERR
-sub say {
-    my $out = shift;
-    print STDERR "$out\n";
-}
-
-# Gets line count and character count of text
-sub text_counts {
-    my $text = shift;
-    for ($text) {
-        s/<\/? *[a-zA-Z]*[^>]*>//gm;
-        s/^\s*([^\s]*)\s*$/$1/g;
-        s/^\s*//gm;
-        s/  +/ /g;
-        s/\s*\z/\n/m;
-    }
-    my $lc = $text =~ tr/\n//;
-    $text =~ tr/- \/\t\r\n&#@…⋮!,\.:;—*"'“”¿?¡!()[]<>『』《》｢｣≪≫《》〈〉//d;
-    my $cc = length($text);
-    $lc = 0 if $cc == 0;
-
-    return ($lc, $cc);
-}
-
-# Dies with message if two exclusive options are given
-sub error_exclusive {
-    my $l = shift;
-    my $r = shift;
-    die "Cannot use both -$l and -$r at the same time\n" if has $l and has $r;
-}
-
-# Checks if key is defined in %opts
-sub has {
-    my $key = shift;
-    return defined $opts{$key};
-}
-
-# Evaluates expression with given duration, line count, and character count
-# for example, `say "hello" if matched("dt > 3 and lc < 5", 4, 1, 3);`
-sub matched {
-    my ($expr, $dt, $lc, $cc) = @_;
-
+# Gets $opts{"expr"}, $opts{"md"}, and $opts{"mg"}
+if (has "m") {
+    my ($md_mg, $expr) = split(";", $opts{m});
+    $expr = "" unless length $expr;
     for ($expr) {
-        s/\bdt\b/$dt/gi;
-        s/\blc\b/$lc/gi;
-        s/\bcc\b/$cc/gi;
+        # Converts '=' to '=='
+        s/([^><=]=)([^=])/$1=$2/g;
+        # Removes whitespace
+        s/^\s*$//;
     }
-    return eval($expr);
+    die "'$opts{m}' is not valid\n" unless valid_condition($expr);
+    $opts{"expr"} = $expr;
+
+    if ($md_mg =~ /^(\d+\.?\d*) *, *(\d+\.?\d*)$/) {
+        $opts{"md"} = $1;
+        $opts{"mg"} = $2;
+    } else {
+        die "'$opts{m}' is not valid\n";
+    }
 }
+
+# Reads from pipe
+if ($#ARGV < 0) {
+    my $content; { local $/; $content = <STDIN> };
+    $content = conv($content);
+    die "invalid content\n" unless valid_srt $content;
+
+    $content = tidy($content, %opts);
+    print $content;
+
+    exit 0;
+}
+
+my $err = 0;
+
+# Reads ARGV files
+foreach my $srt (@ARGV) {
+    my $nsrt = $srt;
+    $nsrt =~ s/\.[^\/\.]*$//;
+    $nsrt .= has "t" ? "-tidy.txt" : "-tidy.srt";
+
+    unless (open(SRT, '<', $srt)) {
+        $err = -1;
+        say "failed to open: ${srt}";
+        next;
+    }
+    unless (open(NSRT, '>', $nsrt)) {
+        $err = -1;
+        say "failed to open: ${nsrt}";
+        close(SRT);
+        next;
+    }
+
+    my $content; { local $/; $content = <SRT> };
+    $content = conv($content);
+
+    unless (valid_srt $content) {
+        $err = -1;
+        say "invalid content: ${srt}";
+        next;
+    }
+
+    # Shows file name on analysis with -m
+    say "tidying: $nsrt" if has "m";
+
+    $content = tidy($content, %opts);
+    if ($content eq "") {
+        say "empty content: ${srt}";
+        close(SRT);
+        close(NSRT);
+        unlink $nsrt;
+    } else {
+        say "created: ${nsrt}";
+        print NSRT $content;
+        close(SRT);
+        close(NSRT);
+    }
+}
+
+exit $err;
+
