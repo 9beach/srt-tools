@@ -3,8 +3,9 @@
 use strict;
 use warnings;
 use utf8;
-use Getopt::Std;
 no warnings 'utf8';
+
+use Getopt::Std;
 
 my $USAGE = <<"USAGE";
 Usage: srttidy [OPTIONS] SRT-FILE [...]
@@ -47,11 +48,6 @@ my $QR_DECIMAL = qr/[+-]?\d+\.?\d*/;
 my $QR_TIME = qr/[0-9][0-9]:[0-9][0-9]:[0-9][0-9],[0-9][0-9][0-9]/;
 my $QR_DURATION = qr/${QR_TIME} *--> *${QR_TIME} *\r?\n/;
 my $QR_TIMEMAP = qr/${QR_TIME}->${QR_TIME} +${QR_TIME}->${QR_TIME}/;
-
-sub say {
-    my $out = shift;
-    print STDERR "$out\n";
-}
 
 my %opts = ();
 
@@ -175,7 +171,7 @@ exit $err;
 
 # Defines submodules below
 
-# Processes the commands
+# Processes each option
 sub tidy {
     my $content = shift;
     my $opts = shift;
@@ -344,7 +340,7 @@ sub valid_srt {
     return $srt =~ /${QR_BOM}?[0-9]+ *\r?\n\s*${QR_DURATION}/m;
 }
 
-# Checks durations, and changes them up to -m option
+# Checks timestamps, and changes them to -m option
 sub analyze {
     my (
         $porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext,
@@ -395,7 +391,7 @@ sub analyze {
     return "$porder$lf$pfrom --> $pto$ptext";
 }
 
-# Tells duration update info
+# Prints duration update info
 sub say_duration_info {
     my $order = shift;
     my $state = shift;
@@ -418,7 +414,7 @@ sub s_shift {
     return to_hms((to_s($t) + $s) * 1000);
 }
 
-# Shifts timestamp lenearly with slope and intercept
+# Shifts timestamp lenearly by slope and intercept
 sub l_shift {
     my $t = shift;
     my $a = shift;
@@ -483,7 +479,7 @@ sub to_hms {
     return sprintf("%02d:%02d:%02d,%03d", $h, $m, $s, $ms);
 }
 
-# Checks -f option valid
+# Checks if -f option value is valid
 sub valid_condition {
     my $condition = shift;
     return 1 unless length $condition;
@@ -506,6 +502,13 @@ sub valid_condition {
     return not $@;
 }
 
+# Prints message to STDERR
+sub say {
+    my $out = shift;
+    print STDERR "$out\n";
+}
+
+# Gets line count and character count of text
 sub text_counts {
     my $text = shift;
     for ($text) {
@@ -523,17 +526,21 @@ sub text_counts {
     return ($lc, $cc);
 }
 
+# Dies with message if two exclusive options are given
 sub error_exclusive {
     my $l = shift;
     my $r = shift;
     die "Cannot use both -$l and -$r at the same time\n" if has($l) and has($r);
 }
 
+# Checks if key is defined in %opts
 sub has {
     my $key = shift;
     return defined $opts{$key};
 }
 
+# Evaluates expression with given duration, line count, and character count
+# for example, say "hello" if matched("dt > 3 and lc < 5", 4, 1, 3);
 sub matched {
     my ($expr, $dt, $lc, $cc) = @_;
 
