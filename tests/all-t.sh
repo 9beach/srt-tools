@@ -8,3 +8,5 @@ for i in t?.sh; do
 	./$i
 	echo
 done
+
+echo "# all" $(ls t?.sh | wc -l) "files DONE"

@@ -24,5 +24,7 @@ assert_ok "rm_bom_cr < s03-ascii-bom-cr-m.out | diff - s03-ascii-m.out"
 assert_ok "! diff s03-ascii-bom-cr.srt s03-ascii.srt > /dev/null"
 assert_ok "rm_bom_cr < s03-ascii-bom-cr.srt | diff - s03-ascii.srt"
 assert_ok "diff s03-ascii-m.err s03-ascii-bom-cr-m.err"
+assert_ok "diff s01-utf16.txt s01-utf8.txt"
+assert_ok "diff s01-utf16.txt s01-cp949.txt"
 
 exit_ok
