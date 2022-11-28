@@ -146,7 +146,7 @@ sub to_srt {
     
     my $prev_time = 0;
     my $prev_sub = "";
-    my $no = 0;
+    my $n = 0;
     
     # FROM:
     # \t50487 Lolita,\nlight of my life,
@@ -170,8 +170,7 @@ sub to_srt {
         my $curr_time = int(substr $_, 0, $sp);
     
         if ($prev_sub ne "") {
-            $no += 1;
-            print $out "$no\n".
+            print $out "${\++$n}\n".
                   "${\to_hms $prev_time} --> ${\to_hms $curr_time}\n".
                   "$prev_sub\n\n";
         }
