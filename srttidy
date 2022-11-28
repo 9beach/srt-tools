@@ -75,7 +75,7 @@ sub matched {
         s/\blc\b/$lc/gi;
         s/\bcc\b/$cc/gi;
     }
-    return eval($expr);
+    return eval $expr;
 }
 
 # Checks if valid SubRip
@@ -96,7 +96,7 @@ sub text_counts {
     }
     my $lc = $text =~ tr/\n//;
     $text =~ tr/- \/\t\r\n&#@…⋮!,\.:;—*"'“”¿?¡!()[]<>『』《》｢｣≪≫《》〈〉//d;
-    my $cc = length($text);
+    my $cc = length $text;
     $lc = 0 if $cc == 0;
 
     return ($lc, $cc);
@@ -117,7 +117,7 @@ sub conv {
         require Encode::Guess;
 
         my $decoder = Encode::Guess::guess_encoding($buf, qw/cp949 euc-kr/);
-        if (ref($decoder)) {
+        if (ref $decoder) {
             $buf = $decoder->decode($buf);
         } else {
             # Fairly often it works
@@ -131,7 +131,7 @@ sub conv {
 sub to_s {
     my $fmt = shift;
     $fmt =~ s/,/./;
-    my @hms = split(":", $fmt);
+    my @hms = split ":", $fmt;
     return $hms[0] * 3600 + $hms[1] * 60 + $hms[2];
 }
 
@@ -272,7 +272,7 @@ sub tidy {
         # Gets slope $a and intercept $b for y = ax + b
         sub slope_intercept {
             my $opt = shift; $opt =~ s/->/ /g;
-            my @s = map { to_s($_) } split(/  */, $opt);
+            my @s = map { to_s $_ } split(/  */, $opt);
             my $a = ($s[3] - $s[1]) / ($s[2] - $s[0]);
             my $b = $s[1] - $a * $s[0];
 
@@ -285,7 +285,7 @@ sub tidy {
             return to_hms((to_s($t) * $a + $b) * 1000);
         }
 
-        my ($a, $b) = slope_intercept($opts{l});
+        my ($a, $b) = slope_intercept $opts{l};
         $content =~ s/(${QR_TIME})[[:blank:]]*-->[[:blank:]]*(${QR_TIME})
                     /${\l_shift $1, $a, $b} --> ${\l_shift $2, $a, $b}/xg;
     }
@@ -337,9 +337,9 @@ sub tidy {
                 my $dur_state;
                 if ($new_pto_s) {
                     $dur_state =
-                    sprintf('%.3f -> %.3f', $pduration, $new_pto_s - $pfrom_s);
+                    sprintf '%.3f -> %.3f', $pduration, $new_pto_s - $pfrom_s;
                 } else {
-                    $dur_state = sprintf('%.3f', $pduration);
+                    $dur_state = sprintf '%.3f', $pduration;
                 }
 
                 say_timestamps_info(
@@ -451,12 +451,12 @@ if (has "f") {
     my $expr = $opts{f};
     # Converts '=' to '=='
     $expr =~ s/([^><=]=)([^=])/$1=$2/g;
-    die "'$opts{f}' is not valid condition\n" unless valid_condition($expr);
+    die "'$opts{f}' is not valid condition\n" unless valid_condition $expr;
     $opts{f} = $expr;
 }
 # Gets $opts{"expr"}, $opts{"md"}, and $opts{"mg"}
 if (has "m") {
-    my ($md_mg, $expr) = split(";", $opts{m});
+    my ($md_mg, $expr) = split ";", $opts{m};
     $expr = "" unless length $expr;
     for ($expr) {
         # Converts '=' to '=='
@@ -464,7 +464,7 @@ if (has "m") {
         # Removes whitespace
         s/^\s*$//;
     }
-    die "'$opts{m}' is not valid\n" unless valid_condition($expr);
+    die "'$opts{m}' is not valid\n" unless valid_condition $expr;
     $opts{"expr"} = $expr;
 
     if ($md_mg =~ /^(\d+\.?\d*) *, *(\d+\.?\d*)$/) {
@@ -478,10 +478,10 @@ if (has "m") {
 # Reads from pipe
 if ($#ARGV < 0) {
     my $content; { local $/; $content = <STDIN> };
-    $content = conv($content);
+    $content = conv $content;
     die "invalid content\n" unless valid_srt $content;
 
-    $content = tidy($content, %opts);
+    $content = tidy $content, %opts;
     print $content;
 
     exit 0;
@@ -508,7 +508,7 @@ foreach my $srt (@ARGV) {
     }
 
     my $content; { local $/; $content = <SRT> };
-    $content = conv($content);
+    $content = conv $content;
 
     unless (valid_srt $content) {
         $err = -1;
@@ -519,7 +519,7 @@ foreach my $srt (@ARGV) {
     # Shows file name on analysis with -m
     say "tidying: $nsrt" if has "m";
 
-    $content = tidy($content, %opts);
+    $content = tidy $content, %opts;
     if ($content eq "") {
         say "empty content: ${srt}";
         close SRT;
