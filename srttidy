@@ -271,10 +271,8 @@ sub tidy {
     if (has "l") {
         # Gets slope $a and intercept $b for y = ax + b
         sub slope_intercept {
-            my $opt = shift;
-            my @m = split(/  */, $opt);
-            my @t = (split("->", $m[0]), split("->", $m[1]));
-            my @s = (to_s($t[0]), to_s($t[1]), to_s($t[2]), to_s($t[3]));
+            my $opt = shift; $opt =~ s/->/ /g;
+            my @s = map { to_s($_) } split(/  */, $opt);
             my $a = ($s[3] - $s[1]) / ($s[2] - $s[0]);
             my $b = $s[1] - $a * $s[0];
 
