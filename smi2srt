@@ -38,7 +38,7 @@ my $err = 0;
 foreach my $smi (@ARGV) {
     my $srt = $smi; $srt =~ s/\.[^\/\.]*$//; $srt .= ".srt";
 
-    unless (open(SMI, '<', $smi)) {
+    unless (open SMI, '<', $smi) {
         $err = -1;
         say "failed to open: ${smi}";
         next;
@@ -46,26 +46,26 @@ foreach my $smi (@ARGV) {
     if (-e $srt) {
         $err = -1;
         say "already exists: ${srt}";
-        close(SMI);
+        close SMI;
         next;
     }
-    unless (open(SRT, '>', $srt)) {
+    unless (open SRT, '>', $srt) {
         $err = -1;
         say "failed to open: ${srt}";
-        close(SMI);
+        close SMI;
         next;
     }
     my $content; { local $/; $content = <SMI> };
     if (0 != to_srt(conv($content), *SRT)) {
         $err = -1;
         say "invalid content: ${smi}";
-        close(SMI);
-        close(SRT);
+        close SMI;
+        close SRT;
         unlink $srt;
     } else {
         say "created: ${srt}";
-        close(SMI);
-        close(SRT);
+        close SMI;
+        close SRT;
     }
 }
 
@@ -82,7 +82,7 @@ sub conv {
         require Encode::Guess;
 
         my $decoder = Encode::Guess::guess_encoding($buf, qw/cp949 euc-kr/);
-        if (ref($decoder)) {
+        if (ref $decoder) {
             $buf = $decoder->decode($buf);
         } else {
             # Fairly often it works
@@ -90,6 +90,19 @@ sub conv {
         }
     }
     return $buf;
+}
+
+# Converts "79145" to "00:01:19,145"
+sub to_hms {
+    my $millisec = shift;
+
+    my $seconds = $millisec / 1000;
+    my $ms = $millisec % 1000;
+    my $s = $seconds % 60;
+    my $m = ($seconds / 60) % 60;
+    my $h = ($seconds / 3600) % 60;
+
+    return sprintf "%02d:%02d:%02d,%03d", $h, $m, $s, $ms;
 }
 
 # Coverts SAMI to UTF-8
@@ -152,14 +165,14 @@ sub to_srt {
     # <font color=red>"fire of my loins.
     # My sin, my soul."
     foreach (@subs) {
-        my $sp = index($_, ' ');
+        my $sp = index $_, ' ';
         my $curr_sub = substr $_, $sp+1;
         my $curr_time = int(substr $_, 0, $sp);
     
         if ($prev_sub ne "") {
             $no += 1;
             print $out "$no\n".
-                  "${\to_hms($prev_time)} --> ${\to_hms($curr_time)}\n".
+                  "${\to_hms $prev_time} --> ${\to_hms $curr_time}\n".
                   "$prev_sub\n\n";
         }
     
@@ -167,16 +180,4 @@ sub to_srt {
         $prev_sub = $curr_sub;
     }
     return 0;
-}
-
-sub to_hms {
-    my $millisec = shift;
-
-    my $seconds = $millisec / 1000;
-    my $ms = $millisec % 1000;
-    my $s = $seconds % 60;
-    my $m = ($seconds / 60) % 60;
-    my $h = ($seconds / 3600) % 60;
-
-    return sprintf("%02d:%02d:%02d,%03d", $h, $m, $s, $ms);
 }

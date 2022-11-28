@@ -146,7 +146,7 @@ sub to_hms {
     my $m = ($seconds / 60) % 60;
     my $h = ($seconds / 3600) % 60;
 
-    return sprintf("%02d:%02d:%02d,%03d", $h, $m, $s, $ms);
+    return sprintf "%02d:%02d:%02d,%03d", $h, $m, $s, $ms;
 }
 
 # Checks if condition (from -f or -m) is valid
@@ -495,15 +495,15 @@ foreach my $srt (@ARGV) {
     $nsrt =~ s/\.[^\/\.]*$//;
     $nsrt .= has "t" ? "-tidy.txt" : "-tidy.srt";
 
-    unless (open(SRT, '<', $srt)) {
+    unless (open SRT, '<', $srt) {
         $err = -1;
         say "failed to open: ${srt}";
         next;
     }
-    unless (open(NSRT, '>', $nsrt)) {
+    unless (open NSRT, '>', $nsrt) {
         $err = -1;
         say "failed to open: ${nsrt}";
-        close(SRT);
+        close SRT;
         next;
     }
 
@@ -522,14 +522,14 @@ foreach my $srt (@ARGV) {
     $content = tidy($content, %opts);
     if ($content eq "") {
         say "empty content: ${srt}";
-        close(SRT);
-        close(NSRT);
+        close SRT;
+        close NSRT;
         unlink $nsrt;
     } else {
         say "created: ${nsrt}";
         print NSRT $content;
-        close(SRT);
-        close(NSRT);
+        close SRT;
+        close NSRT;
     }
 }
 
