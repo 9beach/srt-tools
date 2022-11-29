@@ -88,10 +88,7 @@ sub text_counts {
     my $text = shift;
     for ($text) {
         s/<\/? *[a-zA-Z]*[^>]*>//gm;
-        s/^\s*([^\s]*)\s*$/$1/g;
         s/^\s*//gm;
-        s/  +/ /g;
-        s/\s*\z/\n/m;
     }
     my $lc = $text =~ tr/\n//;
     $text =~ tr/- \/\t\r\n&#@…⋮!,\.:;—*"'“”¿?¡!()[]<>『』《》｢｣≪≫《》〈〉//d;
@@ -253,9 +250,8 @@ sub tidy {
         $content =~ s/<font color[^>]* x=keep-it>//g;
     }
 
-    # Shift timestamps
+    # Shifts timestamp by given time in seconds
     if (has "s") {
-        # shifts timestamp by given time in secconds
         sub s_shift {
             my ($t, $s) = @_;
             return to_hms((to_s($t) + $s) * 1000);
