@@ -298,7 +298,7 @@ sub tidy {
                 $from, $from_s, $to, $to_s, $md, $mg, $lf, $lc, $cc,
             ) = @_;
 
-            # prints duration update info
+            # Prints duration update info
             sub say_timestamps_info {
                 my ($order, $state, $text) = @_;
 
