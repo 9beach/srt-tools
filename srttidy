@@ -406,7 +406,7 @@ sub tidy {
             $s =~ s/  / /g;
             $content .= $t.$s."\n\n";
         }
-        $content =~ tr/\x08\x09//d;
+        $content =~ tr/\x08\x09\r//d;
     }
 
     # Displays subtitle texts only
