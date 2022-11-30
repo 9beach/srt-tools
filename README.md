@@ -114,8 +114,7 @@ Options
   -n                      remove empty subtitles, and reorder lefts one-by-one
   -d PATTERN              remove subtitles including given pattern
   -g PATTERN              show subtitles including given pattern
-  -f CONDITION            show or apply -m option only to subtitles matching
-                          given condition
+  -f CONDITION            show subtitles matching given condition
   -m DURATION,GAP[;COND]  change timestamps by given minimum duration, gap
                           in seconds, and condition
   -b                      remove carriage returns and BOM
