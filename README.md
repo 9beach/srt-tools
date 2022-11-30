@@ -119,6 +119,7 @@ Options
   -m DURATION,GAP[;COND]  change timestamps by given minimum duration, gap
                           in seconds, and condition
   -b                      remove carriage returns and BOM
+  -1                      make each subtitle one line
 
 Examples
   srttidy -t < my.srt > my.txt
@@ -132,6 +133,7 @@ Examples
   srttidy -f '(lc=1 and cc>15) or cc>20 or dt>3.5' < old.srt
   srttidy -m 1.0,0.1 my.srt
   srttidy -m '3,0.1;cc>20 and dt<2' my.srt
+  srttidy -1 -t < my.srt > my.txt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
 ```
@@ -475,6 +477,16 @@ $ srttidy -b < old.srt > new.srt
 같이 제거합니다. 일반적으로 몰라도 되는 기능입니다만 캐리지 리턴이 파일에 
 붙는 것이 싫다면, 다른 옵션으로 작업할 때도 습관적으로 `-b` 옵션을 붙이는
 것을 생각할 수 있습니다.
+
+### 두 줄 이상의 자막을 모두 한 줄로 바꾸기
+
+한 문장이 두 줄 이상으로 이루어진 경우 구글 번역기 등을 이용할 때 제대로 
+번역하지 못하는 경우가 많습니다. 이럴 때 다음과 같이 모든 자막을 한 줄로
+변경하면 편리합니다.
+
+```
+$ srttidy -1 -t < my.srt > text-to-translate.txt
+```
 
 ### 파일 인코딩을 UTF-8으로 변경하기
 

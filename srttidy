@@ -25,6 +25,7 @@ Options
   -m DURATION,GAP[;COND]  change timestamps by given minimum duration, gap
                           in seconds, and condition
   -b                      remove carriage returns and BOM
+  -1                      make each subtitle one line
 
 Examples
   srttidy -t < my.srt > my.txt
@@ -38,6 +39,7 @@ Examples
   srttidy -f '(lc=1 and cc>15) or cc>20 or dt>3.5' < old.srt
   srttidy -m 1.0,0.1 my.srt
   srttidy -m '3,0.1;cc>20 and dt<2' my.srt
+  srttidy -1 -t < my.srt > my.txt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
 USAGE
@@ -185,7 +187,7 @@ sub tidy {
             # \x08, \x09: boundary delimiters for text replacement
             s/(${QR_BOM}?[0-9]+) *(\r?\n)+(${QR_DURATION})/\x08$1$2$3\x09/gm;
             # Removes a subtitle matching pattern in boundary
-            s/\x08[^\x08]*\x09[^\x08\x09]*$opt[^\x08]*//gmi;
+            s/\x08[^\x09]*\x09[^\x08\x09]*$opt[^\x08]*//gmi;
             tr/\x08\x09//d;
         }
     }
@@ -197,7 +199,7 @@ sub tidy {
         # \x08, \x09: boundary delimiters for text replacement
         $buf =~ s/(${QR_BOM}?[0-9]+) *(\r?\n)+\s*(${QR_DURATION})
                 /\x08$1$2$3\x09/xgm;
-        while ($buf =~ /\x08[^\x08]*\x09[^\x08\x09]*$opt[^\x08]*/gmi) {
+        while ($buf =~ /\x08[^\x09]*\x09[^\x08\x09]*$opt[^\x08]*/gmi) {
             $content .= $&;
         }
         $content =~ tr/\x08\x09//d;
@@ -392,6 +394,21 @@ sub tidy {
         $content = $ncontent;
     }
 
+    # Makes each subtitle one line
+    if (has "1") {
+        my $buf = $content; $content = "";
+        # \x08, \x09: boundary delimiters for text replacement
+        $buf =~ s/(${QR_BOM}?[0-9]+) *(\r?\n)+\s*(${QR_DURATION})
+                /\x08$1$2$3\x09/xgm;
+        while ($buf =~ /(\x08[^\x09]*\x09)([^\x08\x09]*)/gm) {
+            my ($t, $s) = ($1, $2);
+            $s =~ s/\n/ /gm;
+            $s =~ s/  / /g;
+            $content .= $t.$s."\n\n";
+        }
+        $content =~ tr/\x08\x09//d;
+    }
+
     # Displays subtitle texts only
     if (has "t") {
         for ($content) {
@@ -404,7 +421,7 @@ sub tidy {
         # Not srt so return
         return $content;
     }
-
+ 
     # Removes additional '\n' when final subtitle was empty
     $content =~ s/(\r?\n)+\z/$1/m;
     return $content;
@@ -413,7 +430,7 @@ sub tidy {
 # Starts main routine
 #
 # Checks the constraints of opts
-die $USAGE unless getopts "f:btm:c:rg:d:nl:s:h", \%opts;
+die $USAGE unless getopts "1f:btm:c:rg:d:nl:s:h", \%opts;
 
 error_exclusive "c", "r";
 error_exclusive "s", "l";
