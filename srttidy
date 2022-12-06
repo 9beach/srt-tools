@@ -358,15 +358,16 @@ sub tidy {
             # Inserts delimiter (\x09) for each order, timestamp, and text
             s/${QR_BOM}?([0-9]+)\s*\n\s*(${QR_DURATION})/\x09$1\n$2/gm;
             # We need dummy last element for time gap
-            s/\z/\x091000000\n99:00:00,000 --> 99:59:59,000\n/m;
+            s/\z/\x091000000\n99990:00:00,000 --> 99999:00:00,000\n/m;
         }
 
         my ($porder, $pfrom, $pfrom_s, $pto, $pto_s, $ptext) = ("");
 
         # Iterates for each delimiter
+        my $QR_MTIME = qr/[0-9]+:[0-9][0-9]:[0-9][0-9],[0-9][0-9][0-9]/;
         while ($content =~ /
-                \x09([0-9]+)\n(${QR_TIME})[[:blank:]]*-->[[:blank:]]*
-                (${QR_TIME})([^\x09]*)/xgm) {
+                \x09([0-9]+)\n(${QR_MTIME})[[:blank:]]*-->[[:blank:]]*
+                (${QR_MTIME})([^\x09]*)/xgm) {
             my (
                 $order, $from, $from_s, $to, $to_s, $text,
             ) = ($1, $2, to_s($2), $3, to_s($3), $4);
