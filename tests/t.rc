@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Temporary working directory
 tmpdir=$(mktemp -d)
-tmpfile=$(mktemp);
+tmpfile=$(mktemp)
+
 n=0
 
 function echo_in_line {
