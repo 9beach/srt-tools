@@ -61,4 +61,13 @@ assert_ok '[ $? -ne 0 ]'
 assert_ok "grep '4,6;(cc > 8)).*is not valid' $tmpfile > /dev/null"
 assert_ok "../srttidy -m '4,6;(cc > 8) and (lc)' < my.srt > /dev/null 2> /dev/null"
 assert_ok "! (../srttidy -m '4,6;(cc > 8) and lc)' < my.srt > /dev/null 2> /dev/null)"
+rm -rf $tmpdir
+mkdir $tmpdir
+cp s02-*.srt $tmpdir
+assert_ok "../srttidy $tmpdir/s02-*.srt 2> /dev/null"
+assert_ok '[ "$(ls $tmpdir/s02-*.srt | grep -v 'tidy' | wc -l)" -eq "$(ls $tmpdir/s02-*-tidy.srt | wc -l)" ]'
+for i in $tmpdir/s02-*-tidy.srt; do
+        assert_ok "diff $i $tmpdir/s02-utf8-tidy.srt > /dev/null"
+done
+
 exit_ok

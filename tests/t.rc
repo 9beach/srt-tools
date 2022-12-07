@@ -5,15 +5,19 @@ tmpdir=$(mktemp -d)
 tmpfile=$(mktemp);
 n=0
 
+function echo_in_line {
+	cmd="$(echo "$@" | sed -e 's:\.\./::g' -e 's:/var[^ ]*/:\$tmpdir/:g' -e 's:/tmp[^ ]*/:\$tmpdir/:g')"
+	(( ${#cmd} > 78 )) && cmd="${cmd:0:75}..."
+	echo $cmd
+}
+
 function assert_ok {
-	cmd=$(echo $1 | sed -e 's:\.\./::g' -e 's:/var[^ ]*/:\$tmpdir/:g' -e 's:/tmp[^ ]*/:\$tmpdir/:g')
-	(( ${#cmd} > 71 )) && cmd="${cmd:0:68}..."
 	eval "$1"
 	if [ $? -eq 0 ]; then
 		(( n++ ))
-		echo "# ok:" $cmd
+		echo_in_line "# ok: $1"
 	else
-		echo "# not ok:" $cmd
+		echo_in_line "# not ok: $1"
 		rm -rf $tmpdir
 		rm -rf $tmpfile
 		exit 1
