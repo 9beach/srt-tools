@@ -1,4 +1,4 @@
-#!/usr/bin/env -S perl -CA
+#!/usr/bin/perl -CA
 
 use strict;
 use warnings;
@@ -505,7 +505,7 @@ my $err = 0;
 foreach my $srt (@ARGV) {
     my $nsrt = $srt;
     $nsrt =~ s/\.[^\/\.]*$//;
-    $nsrt .= (has("t") ? "-tidy.txt" : "-tidy.srt");
+    $nsrt .= has("t") ? "-tidy.txt" : "-tidy.srt";
 
     unless (open SRT, '<', $srt) {
         $err = -1;
