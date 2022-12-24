@@ -17,6 +17,7 @@ Options
   -r                      remove srttidy-specified font color
   -s SECOND               shift timestamps by given time in seconds
   -l TIME-MAP             correct timestamps linearly by given time map
+  -p FRAMERATE-MAP        correct timestamps linearly by given frame rate map
   -n                      remove empty subtitles, and reorder lefts one-by-one
   -d PATTERN              remove subtitles including given pattern
   -g PATTERN              show subtitles including given pattern
@@ -32,6 +33,7 @@ Examples
   srttidy -r < old.srt > new.srt
   srttidy -s -8.26 < old.srt > new.srt
   srttidy -b -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
+  srttidy -p "23.976->24" my.srt
   srttidy -n -d '(yts|sub2smi|elsubtitle)' *.srt
   srttidy -b -n Movies/*/*.srt
   srttidy -g '(yts|sub2smi|elsubtitle)' *.srt
@@ -48,6 +50,7 @@ my $QR_DECIMAL = qr/[+-]?\d+\.?\d*/;
 my $QR_TIME = qr/[0-9][0-9]:[0-9][0-9]:[0-9][0-9],[0-9][0-9][0-9]/;
 my $QR_DURATION = qr/${QR_TIME} *--> *${QR_TIME} *\r?\n/;
 my $QR_TIMEMAP = qr/${QR_TIME}->${QR_TIME} +${QR_TIME}->${QR_TIME}/;
+my $QR_FRAMERATEMAP = qr/\d+\.?\d* *-> *\d+\.?\d*/;
 
 my %opts = ();
 
@@ -285,6 +288,28 @@ sub tidy {
         $content =~ s/(${QR_TIME})[[:blank:]]*-->[[:blank:]]*(${QR_TIME})
                     /${\l_shift $1, $a, $b} --> ${\l_shift $2, $a, $b}/xg;
     }
+    
+    # Corrects timestamps linearly by frame rate-map
+    if (has "p") {
+        # Gets slope $a for y = ax
+        sub slope {
+            my $opt = shift;
+            my @s = split(/ *-> */, $opt);
+            my $a = $s[0] / $s[1];
+
+            return $a;
+        }
+
+        # Shifts timestamp lenearly by slope and intercept
+        sub fps_shift {
+            my ($t, $a) = @_;
+            return to_hms(to_s($t) * $a * 1000);
+        }
+
+        my $a = slope $opts{p};
+        $content =~ s/(${QR_TIME})[[:blank:]]*-->[[:blank:]]*(${QR_TIME})
+                    /${\fps_shift $1, $a} --> ${\fps_shift $2, $a}/xg;
+    }
 
     # Changes timestamps by given minimum duration and gap, and reports them
     if (has "m") {
@@ -430,7 +455,7 @@ sub tidy {
 # Starts main routine
 #
 # Checks the constraints of opts
-die $USAGE unless getopts "1f:btm:c:rg:d:nl:s:h", \%opts;
+die $USAGE unless getopts "1f:btm:c:rg:d:nl:p:s:h", \%opts;
 
 error_exclusive "c", "r";
 error_exclusive "s", "l";
@@ -439,6 +464,7 @@ error_exclusive "t", "r";
 error_exclusive "t", "b";
 error_exclusive "t", "s";
 error_exclusive "t", "l";
+error_exclusive "t", "p";
 error_exclusive "t", "n";
 error_exclusive "m", "t";
 error_exclusive "m", "f";
@@ -455,6 +481,9 @@ if ($#ARGV > 0 and (has "s" or has "l")) {
 }
 if (has "l" and not $opts{l} =~ /^${QR_TIMEMAP}$/) {
     die "'$opts{l}' is not valid time-map\n"
+}
+if (has "p" and not $opts{p} =~ /^${QR_FRAMERATEMAP}$/) {
+    die "'$opts{p}' is not valid frame rate-map\n"
 }
 if (has "s" and not $opts{s} =~ /^${QR_DECIMAL}$/) {
     die "'$opts{s}' is not a decimal number\n"

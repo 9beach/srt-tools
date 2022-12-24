@@ -124,6 +124,7 @@ Options
   -r                      remove srttidy-specified font color
   -s SECOND               shift timestamps by given time in seconds
   -l TIME-MAP             correct timestamps linearly by given time map
+  -p FRAMERATE-MAP        correct timestamps linearly by given frame rate map
   -n                      remove empty subtitles, and reorder lefts one-by-one
   -d PATTERN              remove subtitles including given pattern
   -g PATTERN              show subtitles including given pattern
@@ -139,6 +140,7 @@ Examples
   srttidy -r < old.srt > new.srt
   srttidy -s -8.26 < old.srt > new.srt
   srttidy -b -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
+  srttidy -p "23.976->24" my.srt
   srttidy -n -d '(yts|sub2smi|elsubtitle)' *.srt
   srttidy -b -n Movies/*/*.srt
   srttidy -g '(yts|sub2smi|elsubtitle)' *.srt
@@ -269,6 +271,13 @@ $ srttidy -s -9.2 < my.srt > new.srt
 
 ```
 $ srttidy -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
+```
+
+자막의 싱크가 점차 틀어진다면 위와 같은 방법 이외에 프레임레이트를 변환하는
+방법도 있습니다.
+
+```
+$ srttidy -p "23.976->24" my.srt
 ```
 
 ### 자막 번호 보정하기
