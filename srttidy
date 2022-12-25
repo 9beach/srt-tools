@@ -32,8 +32,8 @@ Examples
   srttidy -c silver *.srt
   srttidy -r < old.srt > new.srt
   srttidy -s -8.26 < old.srt > new.srt
-  srttidy -b -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
-  srttidy -p "23.976->24" my.srt
+  srttidy -b -l "00:00:19,145-00:00:22,189 02:39:17,715-02:39:18,390" my.srt
+  srttidy -p "23.976-24" my.srt
   srttidy -n -d '(yts|sub2smi|elsubtitle)' *.srt
   srttidy -b -n Movies/*/*.srt
   srttidy -g '(yts|sub2smi|elsubtitle)' *.srt
@@ -49,8 +49,8 @@ my $QR_BOM = qr/^\x{FEFF}/;
 my $QR_DECIMAL = qr/[+-]?\d+\.?\d*/;
 my $QR_TIME = qr/[0-9][0-9]:[0-9][0-9]:[0-9][0-9],[0-9][0-9][0-9]/;
 my $QR_DURATION = qr/${QR_TIME} *--> *${QR_TIME} *\r?\n/;
-my $QR_TIMEMAP = qr/${QR_TIME}->${QR_TIME} +${QR_TIME}->${QR_TIME}/;
-my $QR_FRAMERATEMAP = qr/\d+\.?\d* *-> *\d+\.?\d*/;
+my $QR_TIMEMAP = qr/${QR_TIME}->?${QR_TIME} +${QR_TIME}->?${QR_TIME}/;
+my $QR_FRAMERATEMAP = qr/\d+\.?\d* *->? *\d+\.?\d*/;
 
 my %opts = ();
 
@@ -270,7 +270,7 @@ sub tidy {
     if (has "l") {
         # Gets slope $a and intercept $b for y = ax + b
         sub slope_intercept {
-            my $opt = shift; $opt =~ s/->/ /g;
+            my $opt = shift; $opt =~ s/->?/ /g;
             my @s = map { to_s $_ } split(/  */, $opt);
             my $a = ($s[3] - $s[1]) / ($s[2] - $s[0]);
             my $b = $s[1] - $a * $s[0];
@@ -294,7 +294,7 @@ sub tidy {
         # Gets slope $a for y = ax
         sub slope {
             my $opt = shift;
-            my @s = split(/ *-> */, $opt);
+            my @s = split(/ *->? */, $opt);
             my $a = $s[0] / $s[1];
 
             return $a;

@@ -18,7 +18,8 @@ assert_ok "../srttidy -t < s01-utf8.srt | diff - s01-utf8.txt"
 assert_ok "../srttidy -t < s01-cp949.srt | diff - s01-cp949.txt"
 
 assert_ok "../srttidy -s 32.1 < s01-utf16.srt | diff - s01-utf16-s.out"
-assert_ok "../srttidy -l '00:00:19,145->00:00:22,189 01:39:17,715->02:39:18,390' < s01-utf16.srt | diff - s01-utf16-l.out"
+assert_ok "../srttidy -l '00:00:19,145-00:00:22,189 01:39:17,715-02:39:18,390' < s01-utf16.srt | diff - s01-utf16-l.out"
+assert_ok "../srttidy -p 23.976-24 < s01-utf16.srt | diff - s01-utf16-p.out"
 
 assert_ok "../srttidy -f 'cc=10' < s01-utf8.srt | diff - s01-utf8-f.out"
 assert_ok "../srttidy -m '10,0.1;cc=10' < s01-utf8.srt 2> >(diff - s01-utf8-fm.err >&2) > /dev/null"

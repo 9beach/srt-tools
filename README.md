@@ -139,8 +139,8 @@ Examples
   srttidy -c silver *.srt
   srttidy -r < old.srt > new.srt
   srttidy -s -8.26 < old.srt > new.srt
-  srttidy -b -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
-  srttidy -p "23.976->24" my.srt
+  srttidy -b -l "00:00:19,145-00:00:22,189 02:39:17,715-02:39:18,390" my.srt
+  srttidy -p "23.976-24" my.srt
   srttidy -n -d '(yts|sub2smi|elsubtitle)' *.srt
   srttidy -b -n Movies/*/*.srt
   srttidy -g '(yts|sub2smi|elsubtitle)' *.srt
@@ -270,14 +270,14 @@ $ srttidy -s -9.2 < my.srt > new.srt
 싱크를 선형으로 보정할 수 있습니다.
 
 ```
-$ srttidy -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
+$ srttidy -l "00:00:19,145-00:00:22,189 02:39:17,715-02:39:18,390" my.srt
 ```
 
 자막의 싱크가 점차 틀어진다면 위와 같은 방법 이외에 프레임레이트를 변환하는
 방법도 있습니다.
 
 ```
-$ srttidy -p "23.976->24" my.srt
+$ srttidy -p "23.976-24" my.srt
 ```
 
 ### 자막 번호 보정하기
@@ -304,7 +304,7 @@ fire of my loins. My sin, my soul.
 대부분의 옵션은 조합해서 사용할 수 있습니다.
 
 ```
-$ srttidy -n -l "00:00:19,145->00:00:22,189 02:39:17,715->02:39:18,390" my.srt
+$ srttidy -n -l "00:00:19,145-00:00:22,189 02:39:17,715-02:39:18,390" my.srt
 $ srttidy -n -c gray < my.srt > new.srt
 $ srttidy -s -9.2 -c gray < my.srt > new.srt
 $ srttidy -r -n < my.srt > new.srt
