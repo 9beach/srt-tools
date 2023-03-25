@@ -9,7 +9,13 @@
 
 맥이나 리눅스 사용자는 `smi2srt`, `srttidy` 두 파일을 실행 경로에 등록된
 디렉터리에 복사하고 실행 권한을 주면(`chmod +x smi2srt srttidy`) 바로 사용할
-수 있습니다.
+수 있습니다. 가령 다음과 같이 설치할 수 있습니다.
+
+```
+sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/smi2srt -o /usr/local/bin/smi2srt
+sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srttidy -o /usr/local/bin/srttidy
+sudo chmod a+rx /usr/local/bin/smi2srt /usr/local/bin/srttidy
+```
 
 ### 윈도우 사용자
 
