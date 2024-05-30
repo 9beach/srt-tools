@@ -126,6 +126,7 @@ Usage: srttidy [OPTIONS] SRT-FILE [...]
 
 Options
   -t                      show subtitle texts only
+  -u                      show numeric counters and subtitle texts only
   -c COLOR                specify default subtitle font color
   -r                      remove srttidy-specified font color
   -s SECOND               shift timestamps by given time in seconds
@@ -154,6 +155,7 @@ Examples
   srttidy -m 1.0,0.1 my.srt
   srttidy -m '3,0.1;cc>20 and dt<2' my.srt
   srttidy -1 -t < my.srt > my.txt
+  srttidy -1 -u < my.srt > my.txt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
 ```
