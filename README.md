@@ -2,72 +2,53 @@
 
 `srt-tools`는 [서브립](https://en.wikipedia.org/wiki/SubRip)
 파일(`.srt` 확장자)을 다양한 방식으로 수정하고 변환하는 커맨드
-라인 기반의 프로그램 모음입니다. 현재 `smi2srt`와 `srttidy`, 두 프로그램이
-있습니다.
+라인 기반의 프로그램 모음입니다. 현재 `smi2srt`와 `srttidy`, `srttrans` 세 
+프로그램이 포함되어 있습니다. `srtlines`와 `srtmerge`는 `srtmerge`가 내부적으로 사용합니다.
 
 ## 설치
 
-맥이나 리눅스 사용자는 `smi2srt`, `srttidy` 두 파일을 실행 경로에 등록된
-디렉터리에 복사하고 실행 권한을 주면(`chmod +x smi2srt srttidy`) 바로 사용할
-수 있습니다. 가령 다음과 같이 설치할 수 있습니다.
+맥이나 리눅스 사용자는 실행 경로에 등록된 디렉터리에 파일을 복사하고 실행 
+권한을 주면(`chmod +x smi2srt srttidy`) 바로 사용할 수 있습니다. 가령 다음과 
+같이 설치할 수 있습니다.
 
 ```
 sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/smi2srt -o /usr/local/bin/smi2srt
 sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srttidy -o /usr/local/bin/srttidy
-sudo chmod a+rx /usr/local/bin/smi2srt /usr/local/bin/srttidy
+sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srttrans -o /usr/local/bin/srttrans
+sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srtmerge -o /usr/local/bin/srtmerge
+sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srtlines -o /usr/local/bin/srtlines
+cd /usr/local/bin && sudo chmod a+rx srtlines srttidy smi2srt srtmerge srttrans
 ```
 
-### 윈도우 사용자
+`srttrans`를 이용해서 인공지능 자막번역 기능을 사용하려면 [llm-cli](https://github.com/9beach/llm-cli)를 먼저 설치해야 합니다. 이 또한 설치가 매우 간단하니 설치를 권합니다.
 
-마이크로소프트 윈도우 사용자는 [윈도우용 펄](https://strawberryperl.com)
-또는 [WSL](https://apps.microsoft.com/store/detail/windows-subsystem-for-linux/9P9TQF7MRM4R?hl=en-us&gl=us)을 설치한 뒤 사용할 수 있습니다.
-WSL은 가상 리눅스 환경이라 맥이나 리눅스와 사용법이 동일합니다. 그러나
-윈도우용 펄은 몇 가지 차이가 있습니다.
+## SRTTRANS
 
-```
-$ smi2srt my.smi
-created: my.srt
-```
+`srttrans`는 `llm-cli` 툴킷의 `lt-llm-cli` 명령과 사용법이 완전히 일치합니다. 다음과 같이 사용합니다.
 
-리눅스나 맥의 터미널에서 위와 같이 입력하면 `my.srt`파일이 생성됩니다.
-
-```
-c:\> perl c:\path-to\smi2srt my.smi
-created: my.srt
+```sh
+export DEEPL_API_KEY="Your-API-Key"
+cat my-english.srt | lt-llm-cli deepl-cli KO > my-ko.srt
 ```
 
-도스창에서는 위와 같이 명령해야 합니다. `c:\path-to`는 여러분이 `smi2srt`를 
-복사한 경로입니다.
-
-```
-$ smi2srt *.smi
-created: 1.srt
-created: 2.srt
-...
+```sh
+export GEMINI_API_KEY="Your-API-Key"
+cat my-france.srt | gemini-cli "Translate to Korean" > my-ko.srt
 ```
 
-리눅스나 맥 환경에서 위와 같이 실행하면 현재 디렉터리 안의 모든 `smi` 파일을
-`srt`로 변경합니다. 그러나 윈도우에서는 다음과 같이 명령해야 합니다.
-
-```
-for %a in ("*.smi") do perl C:\path-to\smi2srt %a
+```sh
+export ANTHROPIC_API_KEY="Your-API-Key"
+cat my-brazil.srt | claude-cli "Translate to Korean" > my-ko.srt
 ```
 
-`srttidy`는 옵션이 많아서 조금 더 복잡합니다. 도스창의 인코딩을 UTF-8으로
-바꾸고 펄을 실행할 때 별도의 옵션을 줘야 합니다.
+환경 변수 `LT_LINES`과 `LT_SLEEP_SEC`을 지정해서 한 번에 번역을 의뢰하는 라인 수와 대기 시간을 조절할 수 있습니다.
 
+```sh
+export GEMINI_API_KEY="Your-API-Key"
+export LT_LINES=100
+export LT_SLEEP_SEC=5
+cat my-france.srt | gemini-cli "Translate to Korean" > my-ko.srt
 ```
-c:\> chcp 65001
-c:\> perl -CA c:\path-to\srttidy -n < my.srt
-...
-```
-
-저런 식으로 수행해서 대부분이 제대로 작동했지만 `-g` 옵션의 한글 검색은
-제대로 작동하지 않았습니다. 물론 제가 펄 언어를 처음 써서 생긴 문제이며 곧
-고칠 수 있을지도 모릅니다. 하지만 현재로는 모든 기능을 충분히 활용하기 위해
-WSL을 설치해서 사용하기를 권합니다.
-
-이 문서는 맥이나 리눅스 환경을 가정해서 설명합니다.
 
 ## SMI2SRT
 
@@ -525,6 +506,58 @@ $ srttidy -1 -t < my.srt > text-to-translate.txt
 $ srttidy < cp949.srt > utf-8.srt
 $ srttidy < utf-16.srt > utf-8.srt
 ```
+
+## 윈도우 사용자
+
+마이크로소프트 윈도우 사용자는 [윈도우용 펄](https://strawberryperl.com)
+또는 [WSL](https://apps.microsoft.com/store/detail/windows-subsystem-for-linux/9P9TQF7MRM4R?hl=en-us&gl=us)을 설치한 뒤 사용할 수 있습니다.
+WSL은 가상 리눅스 환경이라 맥이나 리눅스와 사용법이 동일합니다. 그러나
+윈도우용 펄은 몇 가지 차이가 있습니다.
+
+```
+$ smi2srt my.smi
+created: my.srt
+```
+
+리눅스나 맥의 터미널에서 위와 같이 입력하면 `my.srt`파일이 생성됩니다.
+
+```
+c:\> perl c:\path-to\smi2srt my.smi
+created: my.srt
+```
+
+도스창에서는 위와 같이 명령해야 합니다. `c:\path-to`는 여러분이 `smi2srt`를 
+복사한 경로입니다.
+
+```
+$ smi2srt *.smi
+created: 1.srt
+created: 2.srt
+...
+```
+
+리눅스나 맥 환경에서 위와 같이 실행하면 현재 디렉터리 안의 모든 `smi` 파일을
+`srt`로 변경합니다. 그러나 윈도우에서는 다음과 같이 명령해야 합니다.
+
+```
+for %a in ("*.smi") do perl C:\path-to\smi2srt %a
+```
+
+`srttidy`는 옵션이 많아서 조금 더 복잡합니다. 도스창의 인코딩을 UTF-8으로
+바꾸고 펄을 실행할 때 별도의 옵션을 줘야 합니다.
+
+```
+c:\> chcp 65001
+c:\> perl -CA c:\path-to\srttidy -n < my.srt
+...
+```
+
+저런 식으로 수행해서 대부분이 제대로 작동했지만 `-g` 옵션의 한글 검색은
+제대로 작동하지 않았습니다. 물론 제가 펄 언어를 처음 써서 생긴 문제이며 곧
+고칠 수 있을지도 모릅니다. 하지만 현재로는 모든 기능을 충분히 활용하기 위해
+WSL을 설치해서 사용하기를 권합니다.
+
+이 문서는 맥이나 리눅스 환경을 가정해서 설명합니다.
 
 ## 마무리
 

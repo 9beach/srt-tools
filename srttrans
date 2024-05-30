@@ -1,0 +1,30 @@
+#!/bin/bash
+
+if [ $# -ne 2 ]; then
+	>&2 echo "Please specify a LLM CLI and an option."
+	>&2 echo 'For example: `'$0' deepl-cli KO` or `'$0' gemini-cli "Translate to Korean"`'
+	exit 1
+fi
+
+TEMPFILE=$(mktemp)
+
+SRT_WITH_TIMESTAMPS="$TEMPFILE"-TS
+SRT_WITH_NUMERICS="$TEMPFILE"-NU
+SRT_WITH_NUMERICS_TR="$TEMPFILE"-NUTR
+SRT_LLM_TEMP="$TEMPFILE"-LLM
+BLANK_LINE="---.---"
+# 3 lines per subtitle
+srttidy -1 > $SRT_WITH_TIMESTAMPS
+cat $SRT_WITH_TIMESTAMPS | grep -v "^[0-9][0-9]:[0-9][0-9]:[0-9][0-9],[0-9][0-9][0-9]" | sed -e "s/^ *$/$BLANK_LINE/" > $SRT_WITH_NUMERICS
+cat $SRT_WITH_NUMERICS | lt-llm-cli "$1" "$2" > $SRT_LLM_TEMP
+
+if [ $? -ne 0 ]; then
+	echo -e "\033[31mFailed to translate the given SRT.\033[0m"
+	exit 1
+fi
+
+cat $SRT_LLM_TEMP| perl -pe 's/^\s+//' > $SRT_WITH_NUMERICS_TR
+
+srtmerge $SRT_WITH_TIMESTAMPS $SRT_WITH_NUMERICS_TR | sed -e "s/$BLANK_LINE/ /" | srtlines
+
+rm $TEMPFILE*

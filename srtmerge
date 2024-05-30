@@ -1,0 +1,57 @@
+#!/usr/bin/perl -CA
+
+use strict;
+use warnings;
+use utf8;
+no warnings 'utf8';
+
+use Getopt::Std;
+
+my %timestamps_hash;
+
+open my $timestamps_f, '<', $ARGV[0] or die "Could not open file: $!";
+
+# Read the file 4 lines at a time
+while (my $line1 = <$timestamps_f>) {
+    chomp $line1;
+    my $line2 = <$timestamps_f>;
+    chomp $line2;
+    my $line3 = <$timestamps_f>;
+    chomp $line3;
+    my $line4 = <$timestamps_f>;
+
+    # Store the key and value in the timestamps_hash
+    $timestamps_hash{$line1} = [$line2, $line3];
+}
+
+close $timestamps_f;
+
+my %trans_hash;
+
+open my $trans_f, '<', $ARGV[1] or die "Could not open file: $!";
+
+# Read the file 3 lines at a time
+while (my $key = <$trans_f>) {
+    chomp $key;
+    my $value = <$trans_f>;
+    chomp $value;
+    my $temp = <$trans_f>;
+
+    # Store the key and value in the trans_hash
+    $trans_hash{$key} = $value;
+}
+
+close $trans_f;
+
+foreach my $key (sort keys %timestamps_hash) {
+    print "$key\n";
+    print "$timestamps_hash{$key}->[0]\n";
+
+    if (exists $trans_hash{$key}) {
+        my $value = $trans_hash{$key};
+        print "$value\n";
+    } else {
+        print "$timestamps_hash{$key}->[1]\n"; 
+    }
+    print "\n"; 
+}
