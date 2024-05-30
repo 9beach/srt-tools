@@ -3,13 +3,12 @@
 `srt-tools`는 [서브립](https://en.wikipedia.org/wiki/SubRip)
 파일(`.srt` 확장자)을 다양한 방식으로 수정하고 변환하는 커맨드
 라인 기반의 프로그램 모음입니다. 현재 `smi2srt`와 `srttidy`, `srttrans` 세 
-프로그램이 포함되어 있습니다. `srtlines`와 `srtmerge`는 `srtmerge`가 내부적으로 사용합니다.
+프로그램이 포함되어 있습니다. `srtlines`와 `srtmerge`는 `srttrans`가 내부적으로 사용합니다.
 
 ## 설치
 
 맥이나 리눅스 사용자는 실행 경로에 등록된 디렉터리에 파일을 복사하고 실행 
-권한을 주면(`chmod +x smi2srt srttidy`) 바로 사용할 수 있습니다. 가령 다음과 
-같이 설치할 수 있습니다.
+권한을 주면 바로 사용할 수 있습니다. 다음과 같이 설치하세요.
 
 ```
 sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/smi2srt -o /usr/local/bin/smi2srt
@@ -20,34 +19,34 @@ sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srtlines -o
 cd /usr/local/bin && sudo chmod a+rx srtlines srttidy smi2srt srtmerge srttrans
 ```
 
-`srttrans`를 이용해서 인공지능 자막번역 기능을 사용하려면 [llm-cli](https://github.com/9beach/llm-cli)를 먼저 설치해야 합니다. 이 또한 설치가 매우 간단하니 설치를 권합니다.
+`srttrans`를 이용해서 인공지능 자막번역 기능을 사용하려면 [llm-cli](https://github.com/9beach/llm-cli)를 먼저 설치해야 합니다. 설치 과정이 매우 간단하므로 설치를 권장합니다.
 
 ## SRTTRANS
 
-`srttrans`는 `llm-cli` 툴킷의 `lt-llm-cli` 명령과 사용법이 완전히 일치합니다. 다음과 같이 사용합니다.
+`srttrans`는 `llm-cli` 툴킷의 `lt-llm-cli` 명령어와 사용법이 완전히 동일합니다. 다음과 같이 사용하세요.
 
 ```sh
 export DEEPL_API_KEY="Your-API-Key"
-cat my-english.srt | lt-llm-cli deepl-cli KO > my-ko.srt
+cat my-english.srt | srttrans deepl-cli KO > my-ko.srt
 ```
 
 ```sh
 export GEMINI_API_KEY="Your-API-Key"
-cat my-france.srt | gemini-cli "Translate to Korean" > my-ko.srt
+cat my-france.srt | srttrans gemini-cli "Translate to Korean" > my-ko.srt
 ```
 
 ```sh
 export ANTHROPIC_API_KEY="Your-API-Key"
-cat my-brazil.srt | claude-cli "Translate to Korean" > my-ko.srt
+cat my-brazil.srt | srttrans claude-cli "Translate to Korean" > my-ko.srt
 ```
 
-환경 변수 `LT_LINES`과 `LT_SLEEP_SEC`을 지정해서 한 번에 번역을 의뢰하는 라인 수와 대기 시간을 조절할 수 있습니다.
+환경 변수 `LT_LINES`과 `LT_SLEEP_SEC`을 지정하여 한 번에 번역을 요청하는 라인 수와 대기 시간을 조절할 수 있습니다.
 
 ```sh
 export GEMINI_API_KEY="Your-API-Key"
 export LT_LINES=100
 export LT_SLEEP_SEC=5
-cat my-france.srt | gemini-cli "Translate to Korean" > my-ko.srt
+cat my-france.srt | srttrans gemini-cli "Translate to Korean" > my-ko.srt
 ```
 
 ## SMI2SRT
