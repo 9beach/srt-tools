@@ -23,9 +23,7 @@ cd /usr/local/bin && sudo chmod a+rx srtlines srttidy smi2srt srtmerge srttrans
 
 ## SRTTRANS
 
-`srttrans`는 `llm-cli` 툴킷의 `lt-llm-cli` 명령어와 사용법이 완전히 동일합니다. API 키는 본인이 발급해야 하며 2024년 현재 구글 제미나이 API 키는 무료로 얻을 수 있습니다.
-
-다음과 같이 사용하세요. 
+`srttrans`는 `llm-cli` 툴킷의 `lt-llm-cli` 명령어와 사용법이 유사합니다. API 키는 본인이 발급해야 하며 2024년 현재 구글 제미나이 API 키는 무료로 얻을 수 있습니다. 다음과 같이 사용하세요. 
 
 ```sh
 export DEEPL_API_KEY="Your-API-Key"
@@ -34,13 +32,16 @@ cat my-english.srt | srttrans deepl-cli KO > my-ko.srt
 
 ```sh
 export GEMINI_API_KEY="Your-API-Key"
-cat my-france.srt | srttrans gemini-cli "Translate to Korean" > my-ko.srt
+cat my-france.srt | srttrans gemini-cli ko > my-ko.srt
 ```
 
 ```sh
 export ANTHROPIC_API_KEY="Your-API-Key"
-cat my-brazil.srt | srttrans claude-cli "Translate to Korean" > my-ko.srt
+cat my-brazil.srt | srttrans claude-cli hi > my-hi.srt
 ```
+
+`ko`, `hi`는 각각 한국어, 힌디어의 약자입니다. `Korean`, `Hindi`로 써도
+무방합니다.
 
 환경 변수 `LT_LINES`과 `LT_SLEEP_SEC`을 지정하여 한 번에 번역을 요청하는 라인 수와 대기 시간을 조절할 수 있습니다.
 
@@ -48,7 +49,7 @@ cat my-brazil.srt | srttrans claude-cli "Translate to Korean" > my-ko.srt
 export GEMINI_API_KEY="Your-API-Key"
 export LT_LINES=100
 export LT_SLEEP_SEC=5
-cat my-france.srt | srttrans gemini-cli "Translate to Korean" > my-ko.srt
+cat my-france.srt | srttrans gemini-cli JP > my-japanese.srt
 ```
 
 ## SMI2SRT
