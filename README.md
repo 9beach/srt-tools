@@ -1,9 +1,9 @@
 # SRT-TOOLS
 
 `srt-tools`는 [서브립](https://en.wikipedia.org/wiki/SubRip)
-파일(`.srt` 확장자)을 다양한 방식으로 수정하고 변환하는 커맨드
-라인 기반의 프로그램 모음입니다. 현재 `smi2srt`와 `srttidy`, `srttrans` 세 
-프로그램이 포함되어 있습니다. `srtlines`와 `srtmerge`는 `srttrans`가 내부적으로 사용합니다.
+파일(`.srt` 확장자)을 LLM을 이용해서 번역하고, 다양한 방식으로 수정하고 
+변환하는 커맨드 라인 기반의 프로그램 모음입니다. 현재 `smi2srt`와 `srttidy`, `srttrans` 세 프로그램이 포함되어 있습니다.
+`srtlines`와 `srtmerge`는 `srttrans`가 내부적으로 사용합니다.
 
 ## 설치
 
@@ -23,7 +23,9 @@ cd /usr/local/bin && sudo chmod a+rx srtlines srttidy smi2srt srtmerge srttrans
 
 ## SRTTRANS
 
-`srttrans`는 `llm-cli` 툴킷의 `lt-llm-cli` 명령어와 사용법이 완전히 동일합니다. 다음과 같이 사용하세요.
+`srttrans`는 `llm-cli` 툴킷의 `lt-llm-cli` 명령어와 사용법이 완전히 동일합니다. API 키는 본인이 발급해야 하며 2024년 현재 구글 제미나이 API 키는 무료로 얻을 수 있습니다.
+
+다음과 같이 사용하세요. 
 
 ```sh
 export DEEPL_API_KEY="Your-API-Key"
