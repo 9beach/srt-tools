@@ -18,7 +18,7 @@ cd /usr/local/bin && sudo chmod a+rx srttidy smi2srt srtmerge srttrans
 
 `srttrans`를 이용해서 인공지능 자막 번역 기능을 사용하려면 [llm-cli](https://github.com/9beach/llm-cli)를 먼저 설치해야 합니다. 설치 과정이 매우 간단하므로 설치를 권장합니다.
 
-## SRTTRANS
+## `srttrans`
 
 `srttrans`는 `llm-cli` 툴킷의 `lt-llm-cli` 명령어와 사용법이 유사합니다. API 키는 본인이 발급해야 하며, 2024년 현재 구글 제미나이 API 키는 무료로 얻을 수 있습니다. 다음과 같이 사용하세요:
 
@@ -50,7 +50,7 @@ cat my-france.srt | srttrans gemini-cli JP > my-japanese.srt
 
 위의 예시에서 번역 작업이 너무 오래 걸려서 중간에 “Ctrl + C”로 멈추더라도, 번역된 부분은 `my-japanese.srt` 파일에 저장됩니다. 그러나 이 경우 번역된 부분뿐만 아니라 번역되지 않은 부분도 함께 저장됩니다. 번역되지 않은 부분만 따로 파일로 저장하여 번역을 완료한 후, `srtmerge` 도구를 사용해 번역된 파일과 병합할 수 있습니다.
 
-## SRTMERGE
+## `srtmerge`
 
 아래와 같은 두 파일을 병합할 때 `srtmerge`를 사용하세요.
 
@@ -118,10 +118,10 @@ Let's go.
 cat org.srt | perl -0777 -pe 's/^\s*\n//mg;s/([0-9]+)\n([0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} --> [0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3})/$1%-/g' > to-translate.txt
 ```
 
-## SMI2SRT
+## `smi2srt`
 
-`smi2srt`는 [SAMI](https://ko.wikipedia.org/wiki/SAMI) 포맷의 파일을
-[서브립](https://en.wikipedia.org/wiki/SubRip) 포맷으로 변경하는 커맨드 라인
+`smi2srt`는 [sami](https://ko.wikipedia.org/wiki/sami) 포맷의 파일을
+[서브립](https://en.wikipedia.org/wiki/subrip) 포맷으로 변경하는 커맨드 라인
 프로그램입니다. 기본 사용법은 다음과 같습니다.
 
 ```
@@ -159,9 +159,9 @@ created: dir1/2.srt
 created: dirN/M.srt
 ```
 
-## SRTTIDY
+## `srttidy`
 
-`srttidy`는 [서브립](https://en.wikipedia.org/wiki/SubRip) 파일의 싱크를 맞추고
+`srttidy`는 [서브립](https://en.wikipedia.org/wiki/subrip) 파일의 싱크를 맞추고
 타임스탬프를 수정하는 등 다양한 작업을 지원하는 커맨드 라인 프로그램입니다.
 특히 글자 수에 비해 표시 시간이 적은 자막만 골라서 시간을 수정하는 등 자막
 번역에 필요한 다양한 기능을 제공합니다.
