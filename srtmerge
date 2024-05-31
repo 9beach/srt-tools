@@ -2,38 +2,62 @@
 use strict;
 use warnings;
 
+my %tshash;
+my $tskey;
+my @tsvs;
+
 open(my $tsh, '<', $ARGV[0]) or die "Could not open file '$ARGV[0]' $!";
-open(my $fh, '<', $ARGV[1]) or die "Could not open file '$ARGV[1]' $!";
+my @tslines = <$tsh>;
+close($tsh);
 
-my %timestamps_hash;
-my $timestamps_key;
-my @timestamps_vs;
+@tslines = grep { $_ !~ /^ *$/ } @tslines;
 
-# FIXME: '%-' from `srttrans`
-while (my $line = <$tsh>) {
-    chomp $line;
-    if ($line =~ /^(\d+)%-/) {
-        if (defined $timestamps_key) {
-            $timestamps_hash{$timestamps_key} = [shift @timestamps_vs, join("\n", @timestamps_vs)];
+for (my $i = 0; $i < @tslines; $i++) {
+    if ($tslines[$i] =~ /^(\d+)$/) {
+        if ($i + 1 < @tslines && $tslines[$i + 1] =~ /^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$/) {
+            $tslines[$i] =~ s/^(\d+)$/$1%-/;
         }
-        $timestamps_key = $1;
-        @timestamps_vs = ();
-    } else {
-        push @timestamps_vs, $line;
     }
 }
 
-if (defined $timestamps_key) {
-    $timestamps_hash{$timestamps_key} = [shift @timestamps_vs, join("\n", @timestamps_vs)];
+# FIXME: '%-' from `srttrans`
+foreach my $line (@tslines) {
+    chomp $line;
+    if ($line =~ /^(\d+)%-/) {
+        if (defined $tskey) {
+            $tshash{$tskey} = [shift @tsvs, join("\n", @tsvs)];
+        }
+        $tskey = $1;
+        @tsvs = ();
+    } else {
+        push @tsvs, $line;
+    }
 }
 
-close $tsh;
+if (defined $tskey) {
+    $tshash{$tskey} = [shift @tsvs, join("\n", @tsvs)];
+}
 
 my %hash;
 my $key;
 my $value = '';
 
-while (my $line = <$fh>) {
+open(my $fh, '<', $ARGV[1]) or die "Could not open file '$ARGV[1]' $!";
+my @lines = <$fh>;
+close $fh;
+
+for (my $i = 0; $i < @lines; $i++) {
+    if ($lines[$i] =~ /^(\d+)$/) {
+        if ($i + 1 < @lines && $lines[$i + 1] =~ /^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$/) {
+            $lines[$i] =~ s/^(\d+)$/$1%-/;
+        }
+    }
+}
+
+@lines = grep { $_ !~ /^[0-9][0-9]:[0-9][0-9]:[0-9][0-9],[0-9][0-9][0-9]/ } @lines;
+@lines = grep { $_ !~ /^ *$/ } @lines;
+
+foreach my $line (@lines) {
     chomp $line;
     if ($line =~ /^(\d+)%-/) {
         if (defined $key) {
@@ -50,16 +74,17 @@ if (defined $key) {
     $hash{$key} = $value;
 }
 
-close $fh;
+foreach my $tskey (sort { $a <=> $b } keys %tshash) {
+    print "$tskey\n";
+    print "$tshash{$tskey}->[0]\n";
 
-foreach my $timestamps_key (sort { $a <=> $b } keys %timestamps_hash) {
-    print "$timestamps_key\n";
-    print "$timestamps_hash{$timestamps_key}->[0]\n";
-
-    if (exists $hash{$timestamps_key}) {
-        my $value = $hash{$timestamps_key};
-        print "$value\n";
+    if (exists $hash{$tskey} && $hash{$tskey} ne "") {
+        my $value = $hash{$tskey};
+        chomp $value;
+        print "$value\n\n";
     } else {
-        print "$timestamps_hash{$timestamps_key}->[1]\n";
+        my $value = $tshash{$tskey}->[1];
+        chomp $value;
+        print "$value\n\n";
     }
 }

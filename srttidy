@@ -25,6 +25,7 @@ Options
   -m DURATION,GAP[;COND]  change timestamps by given minimum duration, gap
                           in seconds, and condition
   -b                      remove carriage returns and BOM
+  -y                      remove unnecessary whitespace
   -1                      make each subtitle one line
 
 Examples
@@ -41,6 +42,7 @@ Examples
   srttidy -m 1.0,0.1 my.srt
   srttidy -m '3,0.1;cc>20 and dt<2' my.srt
   srttidy -1 -t < my.srt > my.txt
+  srttidy -yb < my.srt > my.txt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
 USAGE
@@ -182,6 +184,13 @@ sub tidy {
         $content =~ s/${QR_BOM}//;
     }
 
+    # Removes unnecessary whitespace
+    if (has "y") {
+        $content =~ s/^\s*\n//mg;
+        $content =~ s/(?<=\n)(\d+\n\d{2}:\d{2}:\d{2})/\n$1/xgm;
+        $content =~ s/\n\n+/\n\n/xgm;
+    }
+ 
     # Deletes subtitles including given pattern
     if (has "d") {
         my $opt = $opts{d};
@@ -455,13 +464,14 @@ sub tidy {
 # Starts main routine
 #
 # Checks the constraints of opts
-die $USAGE unless getopts "1f:btm:c:rg:d:nl:p:s:h", \%opts;
+die $USAGE unless getopts "1f:bytm:c:rg:d:nl:p:s:h", \%opts;
 
 error_exclusive "c", "r";
 error_exclusive "s", "l";
 error_exclusive "t", "c";
 error_exclusive "t", "r";
 error_exclusive "t", "b";
+error_exclusive "t", "y";
 error_exclusive "t", "s";
 error_exclusive "t", "l";
 error_exclusive "t", "p";

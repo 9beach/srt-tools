@@ -2,8 +2,7 @@
 
 `srt-tools`는 [서브립](https://en.wikipedia.org/wiki/SubRip)
 파일(`.srt` 확장자)을 LLM을 이용해서 번역하고, 다양한 방식으로 수정하고 
-변환하는 커맨드 라인 기반의 프로그램 모음입니다. 현재 `smi2srt`와 `srttidy`, `srttrans` 세 프로그램이 포함되어 있습니다.
-`srtmerge`는 `srttrans`가 내부적으로 사용합니다.
+변환하는 커맨드 라인 기반의 프로그램 모음입니다. 현재 `smi2srt`와 `srttidy`, `srttrans`, `srtmerge`가 포함되어 있습니다.
 
 ## 설치
 
@@ -50,6 +49,47 @@ export LT_LINES=100
 export LT_SLEEP_SEC=5
 cat my-france.srt | srttrans gemini-cli JP > my-japanese.srt
 ```
+
+위의 예시에서 만약 너무 오래 걸려서 중간에 "컨트롤 C"로 멈추더라도 번역된 
+부분은`my-japanese.srt`에 저장됩니다. 단 번역된 부분만 저장되는 것이 아니라
+번역되지 않은 부분을 포함하여 저장됩니다. 번역되지 않은 부분만 파일로 저장해서
+번역한 뒤 `srtmerge`로 병합할 수 있습니다.
+
+## SRTMERGE
+
+아래와 같은 두 파일을 병합할 때 `srtmerge`를 사용하세요.
+
+*** 파일 a***
+
+```
+1
+00:00:50,313 --> 00:00:52,478
+안녕하세요.
+
+2
+00:00:52,545 --> 00:00:54,043
+-You okay?
+-Person 4: You ready to go in?
+
+3
+00:00:54,109 --> 00:00:55,208
+Let's go.
+```
+
+*** 파일 b***
+
+```
+2
+00:00:52,545 --> 00:00:54,043
+-괜찮아요?
+-사람 4: 들어갈 준비 됐어요?
+
+3
+00:00:54,109 --> 00:00:55,208
+가자.
+```
+
+
 
 ## SMI2SRT
 
@@ -121,6 +161,7 @@ Options
   -m DURATION,GAP[;COND]  change timestamps by given minimum duration, gap
                           in seconds, and condition
   -b                      remove carriage returns and BOM
+  -y                      remove unnecessary whitespace
   -1                      make each subtitle one line
 
 Examples
@@ -137,7 +178,7 @@ Examples
   srttidy -m 1.0,0.1 my.srt
   srttidy -m '3,0.1;cc>20 and dt<2' my.srt
   srttidy -1 -t < my.srt > my.txt
-  srttidy -1 -u < my.srt > my.txt
+  srttidy -yb < my.srt > my.txt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
 ```
@@ -289,6 +330,43 @@ fire of my loins. My sin, my soul.
 
 3
 ...
+```
+
+### 인덴트 정리하기
+
+```
+
+8
+00:00:50,313 --> 00:00:52,478
+Okay. Everyone has bottles?
+9
+00:00:52,545 --> 00:00:54,043
+-You okay?
+
+-Person 4: You ready to go in?
+
+
+10
+00:00:54,109 --> 00:00:55,208
+Let's go.
+```
+
+위와 같은 자막은 `-y` 옵션으로 말끔히 정리할 수 있습니다.
+
+```
+cat nasty.srt | srttidy -y
+8
+00:00:50,313 --> 00:00:52,478
+Okay. Everyone has bottles?
+
+9
+00:00:52,545 --> 00:00:54,043
+-You okay?
+-Person 4: You ready to go in?
+
+10
+00:00:54,109 --> 00:00:55,208
+Let's go.
 ```
 
 대부분의 옵션은 조합해서 사용할 수 있습니다.
