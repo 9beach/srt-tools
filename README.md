@@ -6,8 +6,7 @@
 
 ## 설치
 
-맥이나 리눅스 사용자는 실행 경로에 등록된 디렉터리에 파일을 복사하고 실행 
-권한을 주면 바로 사용할 수 있습니다. 다음과 같이 설치하세요.
+맥이나 리눅스 사용자는 파일을 실행 경로에 등록된 디렉터리에 복사하고 실행 권한을 부여하면 바로 사용할 수 있습니다. 다음과 같이 설치하세요:
 
 ```
 sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/smi2srt -o /usr/local/bin/smi2srt
@@ -17,11 +16,11 @@ sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srtmerge -o
 cd /usr/local/bin && sudo chmod a+rx srttidy smi2srt srtmerge srttrans
 ```
 
-`srttrans`를 이용해서 인공지능 자막번역 기능을 사용하려면 [llm-cli](https://github.com/9beach/llm-cli)를 먼저 설치해야 합니다. 설치 과정이 매우 간단하므로 설치를 권장합니다.
+`srttrans`를 이용해서 인공지능 자막 번역 기능을 사용하려면 [llm-cli](https://github.com/9beach/llm-cli)를 먼저 설치해야 합니다. 설치 과정이 매우 간단하므로 설치를 권장합니다.
 
 ## SRTTRANS
 
-`srttrans`는 `llm-cli` 툴킷의 `lt-llm-cli` 명령어와 사용법이 유사합니다. API 키는 본인이 발급해야 하며 2024년 현재 구글 제미나이 API 키는 무료로 얻을 수 있습니다. 다음과 같이 사용하세요. 
+`srttrans`는 `llm-cli` 툴킷의 `lt-llm-cli` 명령어와 사용법이 유사합니다. API 키는 본인이 발급해야 하며, 2024년 현재 구글 제미나이 API 키는 무료로 얻을 수 있습니다. 다음과 같이 사용하세요:
 
 ```sh
 export DEEPL_API_KEY="Your-API-Key"
@@ -38,10 +37,9 @@ export ANTHROPIC_API_KEY="Your-API-Key"
 cat my-brazil.srt | srttrans claude-cli hi > my-hi.srt
 ```
 
-`ko`, `hi`는 각각 한국어, 힌디어의 약자입니다. `Korean`, `Hindi`로 써도
-무방합니다.
+ko, hi는 각각 한국어와 힌디어의 약자입니다. Korean, Hindi로 써도 무방합니다.
 
-환경 변수 `LT_LINES`과 `LT_SLEEP_SEC`을 지정하여 한 번에 번역을 요청하는 라인 수와 대기 시간을 조절할 수 있습니다.
+환경 변수 `LT_LINES`와 `LT_SLEEP_SEC`을 지정하여 한 번에 번역을 요청하는 라인 수와 대기 시간을 조절할 수 있습니다. `LT_LINES`는 한 번에 번역 요청할 라인 수를 설정하고, `LT_SLEEP_SEC`는 각 번역 요청 사이의 대기 시간을 설정합니다.
 
 ```sh
 export GEMINI_API_KEY="Your-API-Key"
@@ -50,16 +48,13 @@ export LT_SLEEP_SEC=5
 cat my-france.srt | srttrans gemini-cli JP > my-japanese.srt
 ```
 
-위의 예시에서 만약 너무 오래 걸려서 중간에 "컨트롤 C"로 멈추더라도 번역된 
-부분은`my-japanese.srt`에 저장됩니다. 단 번역된 부분만 저장되는 것이 아니라
-번역되지 않은 부분을 포함하여 저장됩니다. 번역되지 않은 부분만 파일로 저장해서
-번역한 뒤 `srtmerge`로 병합할 수 있습니다.
+위의 예시에서 번역 작업이 너무 오래 걸려서 중간에 “Ctrl + C”로 멈추더라도, 번역된 부분은 `my-japanese.srt` 파일에 저장됩니다. 그러나 이 경우 번역된 부분뿐만 아니라 번역되지 않은 부분도 함께 저장됩니다. 번역되지 않은 부분만 따로 파일로 저장하여 번역을 완료한 후, `srtmerge` 도구를 사용해 번역된 파일과 병합할 수 있습니다.
 
 ## SRTMERGE
 
 아래와 같은 두 파일을 병합할 때 `srtmerge`를 사용하세요.
 
-*** 파일 a***
+**파일 a**
 
 ```
 1
@@ -76,7 +71,7 @@ cat my-france.srt | srttrans gemini-cli JP > my-japanese.srt
 Let's go.
 ```
 
-*** 파일 b***
+**파일 b**
 
 ```
 2
@@ -89,7 +84,39 @@ Let's go.
 가자.
 ```
 
+```
+❯ srtmerge a b
+1
+00:00:50,313 --> 00:00:52,478
+안녕하세요.
 
+2
+00:00:52,545 --> 00:00:54,043
+-괜찮아요?
+-사람 4: 들어갈 준비 됐어요?
+
+3
+00:00:54,109 --> 00:00:55,208
+가자.
+```
+
+파일 `a`가 존재하는 번호만 파일 `b`에서 가져와 병합하니 주의하세요.
+
+`srtmerge`의 특이한 기능으로 파일 b의 포맷을 한 가지 더 지원합니다.
+
+```txt
+2%-
+-괜찮아요?
+-사람 4: 들어갈 준비 됐어요?
+3%-
+가자.
+```
+
+즉, 타임스탬프 없이 숫자 다음에 `%-` 기호만 있으면 파일 a에 병합할 수 있습니다. 이 기능을 이용하면 번역 엔진을 사용할 때 필요 없는 부분을 제거하고, 번역한 뒤 병합할 수 있습니다. 터미널에서 다음 명령어를 실행해 보세요.
+
+```sh
+cat org.srt | perl -0777 -pe 's/^\s*\n//mg;s/([0-9]+)\n([0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} --> [0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3})/$1%-/g' > to-translate.txt
+```
 
 ## SMI2SRT
 
@@ -115,8 +142,7 @@ $ smi2srt < my.smi > new.srt
 $ smi2srt < my.smi
 ```
 
-한꺼번에 많은 파일을 변환할 수도 있습니다. 이때는 `>`를 이용해서 이름을 지정할
-수 없습니다.
+저장되는 파일의 이름을 직접 지정하지 않으려면 `<` 없이 사용하세요. 이때는 한꺼번에 많은 파일을 변환할 수도 있습니다.
 
 ```
 $ smi2srt 1.smi 2.smi 3.smi
@@ -225,7 +251,7 @@ three steps down the palate to tap,
 at three, on the teeth. Lo. Lee. Ta.
 ```
 
-아래의 두 명령과 비교해 봅시다.
+아래의 두 명령과 비교해 보세요.
 
 ```
 $ srttidy -t my.srt
@@ -354,7 +380,7 @@ Let's go.
 위와 같은 자막은 `-y` 옵션으로 말끔히 정리할 수 있습니다.
 
 ```
-cat nasty.srt | srttidy -y
+> cat nasty.srt | srttidy -y
 8
 00:00:50,313 --> 00:00:52,478
 Okay. Everyone has bottles?
@@ -368,6 +394,8 @@ Okay. Everyone has bottles?
 00:00:54,109 --> 00:00:55,208
 Let's go.
 ```
+
+### 옵션의 조합
 
 대부분의 옵션은 조합해서 사용할 수 있습니다.
 

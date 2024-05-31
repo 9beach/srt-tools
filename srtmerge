@@ -59,7 +59,7 @@ for (my $i = 0; $i < @lines; $i++) {
 
 foreach my $line (@lines) {
     chomp $line;
-    if ($line =~ /^(\d+)%-/) {
+    if ($line =~ /^(\d+) *% *-/) {
         if (defined $key) {
             $hash{$key} = $value;
         }
