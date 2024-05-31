@@ -13,7 +13,6 @@ Usage: srttidy [OPTIONS] SRT-FILE [...]
 
 Options
   -t                      show subtitle texts only
-  -u                      show numeric counters and subtitle texts only
   -c COLOR                specify default subtitle font color
   -r                      remove srttidy-specified font color
   -s SECOND               shift timestamps by given time in seconds
@@ -42,7 +41,6 @@ Examples
   srttidy -m 1.0,0.1 my.srt
   srttidy -m '3,0.1;cc>20 and dt<2' my.srt
   srttidy -1 -t < my.srt > my.txt
-  srttidy -1 -u < my.srt > my.txt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
 USAGE
@@ -437,27 +435,18 @@ sub tidy {
     }
 
     # Displays subtitle texts only
-    if (has "u") {
-      for ($content) {
-        s/${QR_BOM}?([0-9]+)\s*\r?\n\s*${QR_DURATION}/$1\n/gm;
-        s/<\/? *[a-zA-Z]*[^>]*>//gm;
-        s/^\s*//gm;
-        s/ +/ /g;
-      }
-      # It's not srt, so return immediately
-      return $content;
-    }
     if (has "t") {
-      for ($content) {
-        s/${QR_BOM}?[0-9]+\s*\r?\n\s*${QR_DURATION}//gm;
-        s/<\/? *[a-zA-Z]*[^>]*>//gm;
-        s/^\s*//gm;
-        s/ +/ /g;
-      }
-      # It's not srt, so return immediately
-      return $content;
-    }
+        for ($content) {
+            s/${QR_BOM}?[0-9]+\s*\r?\n\s*${QR_DURATION}//gm;
+            s/<\/? *[a-zA-Z]*[^>]*>//gm;
+            s/^\s*//gm;
+            s/ +/ /g;
+        }
 
+        # Not srt so return
+        return $content;
+    }
+ 
     # Removes additional '\n' when final subtitle was empty
     $content =~ s/(\r?\n)+\z/$1/m;
     return $content;
@@ -466,17 +455,10 @@ sub tidy {
 # Starts main routine
 #
 # Checks the constraints of opts
-die $USAGE unless getopts "1f:btum:c:rg:d:nl:p:s:h", \%opts;
+die $USAGE unless getopts "1f:btm:c:rg:d:nl:p:s:h", \%opts;
 
 error_exclusive "c", "r";
 error_exclusive "s", "l";
-error_exclusive "u", "c";
-error_exclusive "u", "r";
-error_exclusive "u", "b";
-error_exclusive "u", "s";
-error_exclusive "u", "l";
-error_exclusive "u", "p";
-error_exclusive "u", "n";
 error_exclusive "t", "c";
 error_exclusive "t", "r";
 error_exclusive "t", "b";
@@ -485,7 +467,6 @@ error_exclusive "t", "l";
 error_exclusive "t", "p";
 error_exclusive "t", "n";
 error_exclusive "m", "t";
-error_exclusive "m", "u";
 error_exclusive "m", "f";
 error_exclusive "m", "g";
 
@@ -553,7 +534,7 @@ my $err = 0;
 foreach my $srt (@ARGV) {
     my $nsrt = $srt;
     $nsrt =~ s/\.[^\/\.]*$//;
-    $nsrt .= has("t") || has("u") ? "-tidy.txt" : "-tidy.srt";
+    $nsrt .= has("t") ? "-tidy.txt" : "-tidy.srt";
 
     unless (open SRT, '<', $srt) {
         $err = -1;
