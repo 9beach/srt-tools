@@ -3,7 +3,7 @@
 `srt-tools`는 [서브립](https://en.wikipedia.org/wiki/SubRip)
 파일(`.srt` 확장자)을 LLM을 이용해서 번역하고, 다양한 방식으로 수정하고 
 변환하는 커맨드 라인 기반의 프로그램 모음입니다. 현재 `smi2srt`와 `srttidy`, `srttrans` 세 프로그램이 포함되어 있습니다.
-`srtlines`와 `srtmerge`는 `srttrans`가 내부적으로 사용합니다.
+`srtmerge`는 `srttrans`가 내부적으로 사용합니다.
 
 ## 설치
 
@@ -15,8 +15,7 @@ sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/smi2srt -o 
 sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srttidy -o /usr/local/bin/srttidy
 sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srttrans -o /usr/local/bin/srttrans
 sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srtmerge -o /usr/local/bin/srtmerge
-sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srtlines -o /usr/local/bin/srtlines
-cd /usr/local/bin && sudo chmod a+rx srtlines srttidy smi2srt srtmerge srttrans
+cd /usr/local/bin && sudo chmod a+rx srttidy smi2srt srtmerge srttrans
 ```
 
 `srttrans`를 이용해서 인공지능 자막번역 기능을 사용하려면 [llm-cli](https://github.com/9beach/llm-cli)를 먼저 설치해야 합니다. 설치 과정이 매우 간단하므로 설치를 권장합니다.

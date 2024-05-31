@@ -6,13 +6,15 @@ if [ $# -ne 2 ]; then
 	exit 1
 fi
 
+GRAY='\033[1;37m'
+RED='\033[31m'
+NOCOLOR='\033[0m'
+
 TEMPFILE=$(mktemp)
 
-SRT_WITH_TIMESTAMPS="$TEMPFILE"-TS
-SRT_WITH_NUMERICS="$TEMPFILE"-NU
-SRT_WITH_NUMERICS_TR="$TEMPFILE"-NUTR
-SRT_LLM_TEMP="$TEMPFILE"-LLM
-BLANK_LINE="---.---"
+SRT_TIMESTAMPS="$TEMPFILE"-TS
+SRT_NUMERICS="$TEMPFILE"-NU
+SRT_LLM="$TEMPFILE"-LLM
 
 if [ "$(basename "$1")" = "deepl-cli" ]; then
 	TARGET_LANG="$2"
@@ -20,18 +22,25 @@ else
 	TARGET_LANG="translate to $2 without comment."
 fi
 
-# 3 lines per subtitle
-srttidy -1 > $SRT_WITH_TIMESTAMPS
-cat $SRT_WITH_TIMESTAMPS | grep -v "^[0-9][0-9]:[0-9][0-9]:[0-9][0-9],[0-9][0-9][0-9]" | sed -e "s/^ *$/$BLANK_LINE/" > $SRT_WITH_NUMERICS
-cat $SRT_WITH_NUMERICS | lt-llm-cli "$1" "$TARGET_LANG" > $SRT_LLM_TEMP
+function make_timestamps {
+	# FIXME: '%-' is used in `srtmerge`
+	srttidy -b | perl -0777 -pe 's/([0-9]+)\n([0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} --> [0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3})/$1%-\n$2/g'
+}
+function removetimestamps {
+	grep -v '^[0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9][0-9][0-9] --> ' | sed '/^[ \t]*$/d'
+}
+
+make_timestamps > $SRT_TIMESTAMPS
+cat $SRT_TIMESTAMPS | removetimestamps > $SRT_NUMERICS
+
+cat $SRT_NUMERICS | lt-llm-cli "$1" "$TARGET_LANG" > $SRT_LLM
 
 if [ $? -ne 0 ]; then
-	echo -e "\033[31mFailed to translate the given SRT.\033[0m"
+	>&2 echo -e "${RED}Failed to translate the given SRT.${NOCOLOR}"
 	exit 1
 fi
 
-cat $SRT_LLM_TEMP| perl -pe 's/^\s+//' > $SRT_WITH_NUMERICS_TR
-
-srtmerge $SRT_WITH_TIMESTAMPS $SRT_WITH_NUMERICS_TR | sed -e "s/$BLANK_LINE/ /" | srtlines
-
+srtmerge $SRT_TIMESTAMPS $SRT_LLM
 rm $TEMPFILE*
+
+>&2 echo -e "${GRAY}Translation compelted.${NOCOLOR}"
