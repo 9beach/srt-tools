@@ -303,7 +303,7 @@ created: my-tidy-tidy.srt
 srttidy -r < my-tidy.srt > my-org.srt
 ```
 
-## Adjusting subtitle sync
+### Adjusting subtitle sync
 
 If the subtitles appear earlier than the video and you want to delay them by 2.1 seconds, run the following:
 
