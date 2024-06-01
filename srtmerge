@@ -2,6 +2,7 @@
 use strict;
 use warnings;
 
+# Processes $ARGV[0].
 my %tshash;
 my $tskey;
 my @tsvs;
@@ -15,12 +16,13 @@ close($tsh);
 for (my $i = 0; $i < @tslines; $i++) {
     if ($tslines[$i] =~ /^(\d+)$/) {
         if ($i + 1 < @tslines && $tslines[$i + 1] =~ /^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$/) {
+            # Appends '%-' for easy parsing.
             $tslines[$i] =~ s/^(\d+)$/$1%-/;
         }
     }
 }
 
-# FIXME: '%-' from `srttrans`
+# Constructs hashmap of number to (timestamp, text).
 foreach my $line (@tslines) {
     chomp $line;
     if ($line =~ /^(\d+)%-/) {
@@ -38,6 +40,7 @@ if (defined $tskey) {
     $tshash{$tskey} = [shift @tsvs, join("\n", @tsvs)];
 }
 
+# Processes $ARGV[1].
 my %hash;
 my $key;
 my $value = '';
@@ -46,6 +49,7 @@ open(my $fh, '<', $ARGV[1]) or die "Could not open file '$ARGV[1]' $!";
 my @lines = <$fh>;
 close $fh;
 
+# Appends `%-` to each number, and removes timestamp.
 for (my $i = 0; $i < @lines; $i++) {
     if ($lines[$i] =~ /^(\d+)$/) {
         if ($i + 1 < @lines && $lines[$i + 1] =~ /^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$/) {
@@ -57,6 +61,7 @@ for (my $i = 0; $i < @lines; $i++) {
 @lines = grep { $_ !~ /^[0-9][0-9]:[0-9][0-9]:[0-9][0-9],[0-9][0-9][0-9]/ } @lines;
 @lines = grep { $_ !~ /^ *$/ } @lines;
 
+# Constructs hashmap of number to text
 foreach my $line (@lines) {
     chomp $line;
     if ($line =~ /^(\d+) *% *-/) {
@@ -74,6 +79,7 @@ if (defined $key) {
     $hash{$key} = $value;
 }
 
+# Merges argv1 text to argv2 text
 foreach my $tskey (sort { $a <=> $b } keys %tshash) {
     print "$tskey\n";
     print "$tshash{$tskey}->[0]\n";
