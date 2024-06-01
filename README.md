@@ -57,7 +57,7 @@ Use `srtmerge` when merging two files like the ones below.
 ```
 1
 00:00:50,313 --> 00:00:52,478
-Hello.
+안녕.
 
 2
 00:00:52,545 --> 00:00:54,043
@@ -87,7 +87,7 @@ Let's go.
 ❯ srtmerge a b
 1
 00:00:50,313 --> 00:00:52,478
-안녕하세요.
+안녕.
 
 2
 00:00:52,545 --> 00:00:54,043
@@ -303,7 +303,7 @@ created: my-tidy-tidy.srt
 srttidy -r < my-tidy.srt > my-org.srt
 ```
 
-## Adjusting Subtitle Sync
+## Adjusting subtitle sync
 
 If the subtitles appear earlier than the video and you want to delay them by 2.1 seconds, run the following:
 
@@ -349,7 +349,7 @@ fire of my loins. My sin, my soul.
 ...
 ```
 
-### Indent Cleanup
+### Indent cleanup
 
 
 ```
@@ -387,7 +387,7 @@ Okay. Everyone has bottles?
 Let's go.
 ```
 
-## Combinations of Options
+## Combinations of options
 
 Most options can be used in combination.
 
@@ -476,7 +476,7 @@ three steps down the palate to tap,
 
 You can also use parentheses to construct complex conditions, like `'(lc=1 and cc>=15) or cc>20 or dt>3.5'`.
 
-### Adjusting Display Time
+### Adjusting display time
 
 Sometimes subtitles may pass too quickly to read. You can use the `-m` option to specify a minimum display time for subtitles, increasing their duration. Consider the following example:
 
@@ -569,7 +569,7 @@ $ srttidy -m '3,0.1;lc=1 and cc>=20' < my.srt > new.srt
   at three, on the teeth. Lo. Lee. Ta.
 ```
 
-### Removing Byte Order Mark and Carriage Return
+### Removing byte order mark and carriage return
 
 Although not visible to the user, sometimes the [Byte Order Mark](https://en.wikipedia.org/wiki/Byte_order_mark) can cause problems. The `-b` option can be used to remove it.
 
@@ -596,7 +596,7 @@ srttidy < cp949.srt > utf-8.srt
 srttidy < utf-16.srt > utf-8.srt
 ```
 
-## Windows Users
+## Windows users
 
 Microsoft Windows users can install [Perl for Windows](https://strawberryperl.com)
 or [WSL](https://apps.microsoft.com/store/detail/windows-subsystem-for-linux/9P9TQF7MRM4R?hl=en-us&gl=us) and then use it.
