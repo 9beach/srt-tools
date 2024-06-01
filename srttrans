@@ -39,6 +39,7 @@ function exitfn {
 trap "exitfn" INT
 
 export LT_VERBOSE="yes"
+export LT_FAILED_OUTPUT="no"
 
 srttidy -by > $SRT_TIMESTAMPS
 cat $SRT_TIMESTAMPS | removetimestamps > $SRT_NUMERICS
