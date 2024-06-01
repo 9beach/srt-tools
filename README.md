@@ -16,39 +16,39 @@ sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srtmerge -o
 cd /usr/local/bin && sudo chmod a+rx srttidy smi2srt srtmerge srttrans
 ```
 
-`srttrans`를 이용해서 인공지능 자막 번역 기능을 사용하려면 [llm-cli](https://github.com/9beach/llm-cli)를 먼저 설치해야 합니다. 설치 과정이 매우 간단하므로 설치를 권장합니다.
-
 ## `srttrans`
 
-`srttrans`는 `llm-cli` 툴킷의 `lt-llm-cli` 명령어와 사용법이 유사합니다. 이 도구를 사용하려면 API 키를 직접 발급받아야 합니다. 2024년 현재 구글의 제미나이 API는 무료로 이용할 수 있습니다. DeepL도 한달 500,000자 제한이 있는 키를 무료로 제공합니다. 대부분의 LLM 서비스는 저작권이나 부적절한 표현과 관련된 제약이 있기 때문에, 자막 번역 용도로는 DeepL이 가장 적합합니다. 사용 방법은 다음과 같습니다:
+`srttrans`를 이용해서 인공지능 자막 번역 기능을 사용하려면 [llm-cli](https://github.com/9beach/llm-cli)를 먼저 설치한 뒤 인공지능 서비스 API 키를 직접 발급받아야 합니다. 2024년 현재 구글의 제미나이 API는 무료로 이용할 수 있고 DeepL도 한달 500,000자 제한이 있는 키를 무료로 제공합니다. 대부분의 LLM 서비스는 저작권이나 부적절한 표현과 관련된 제약이 있기 때문에, 자막 번역 용도로는 DeepL이 가장 적합합니다. 사용 방법은 다음과 같습니다:
 
 ```sh
-export DEEPL_API_KEY="Your-API-Key"
+export DEEPL_API_KEY="your-api-key-here"
 cat my-english.srt | srttrans deepl-cli KO > my-ko.srt
 ```
 
 ```sh
-export GEMINI_API_KEY="Your-API-Key"
+export GEMINI_API_KEY="your-api-key-here"
 cat my-france.srt | srttrans gemini-cli ko > my-ko.srt
 ```
 
 ```sh
-export ANTHROPIC_API_KEY="Your-API-Key"
+export ANTHROPIC_API_KEY="your-api-key-here"
 cat my-brazil.srt | srttrans claude-cli hi > my-hi.srt
 ```
 
-ko, hi는 각각 한국어와 힌디어의 약자입니다. Korean, Hindi로 써도 무방합니다.
+`ko`, `hi`는 각각 한국어와 힌디어의 약자입니다. `deepl-cli`는 반드시 두 글자로 지정해야 하며 `gemini-cli`와 `claude-cli`는 `Korean`, `Hindi`로 써도 무방합니다.
 
 환경 변수 `LT_LINES`와 `LT_SLEEP_SEC`을 지정하여 한 번에 번역을 요청하는 라인 수와 대기 시간을 조절할 수 있습니다. `LT_LINES`는 한 번에 번역 요청할 라인 수를 설정하고, `LT_SLEEP_SEC`는 각 번역 요청 사이의 대기 시간을 설정합니다.
 
 ```sh
-export GEMINI_API_KEY="Your-API-Key"
+export GEMINI_API_KEY="your-api-key-here"
 export LT_LINES=100
 export LT_SLEEP_SEC=5
 cat my-france.srt | srttrans gemini-cli JP > my-japanese.srt
 ```
 
-위의 예시에서 번역 작업이 너무 오래 걸려서 중간에 “Ctrl + C”로 멈추더라도, 번역된 부분은 `my-japanese.srt` 파일에 저장됩니다. 그러나 이 경우 번역된 부분뿐만 아니라 번역되지 않은 부분도 함께 저장됩니다. 번역되지 않은 부분만 따로 파일로 저장하여 번역을 완료한 후, `srtmerge` 도구를 사용해 번역된 파일과 병합할 수 있습니다.
+번역 작업이 너무 오래 걸려 <kbd>CTRL + C</kbd>로 멈추더라도, 번역된 부분은 `my-japanese.srt` 파일에 저장됩니다. 그러나 이 경우 번역된 부분뿐만 아니라 번역되지 않은 부분도 함께 저장됩니다. 이는 번역되지 않은 부분을 쉽게 찾을 수 있도록 하기 위함입니다. 이제 번역되지 않은 부분만 따로 저장하여 번역을 완료한 후, `srtmerge`를 사용해 병합할 수 있습니다.
+
+`deepl-cli`에서는 이러한 일이 드물지만, `gemini-cli`와 `claude-cli`는 다양한 이유로 일부 문장의 번역을 거부하는 경우가 많아 `srtmerge`가 유용할 때가 있습니다.
 
 ## `srtmerge`
 
@@ -102,7 +102,7 @@ Let's go.
 
 파일 `a`는 자신에게 존재하는 번호만 파일 `b`로부터 가져와 병합합니다. 즉 파일 `a`에 영어로 된 2, 3 번 자막이 없다면 `b`로부터 해당 자막을 병합하지 않습니다. 이 점에 유의하세요.
 
-`srtmerge`의 독특한 기능으로, 파일 b의 추가 포맷을 지원합니다.
+파일 b가 반드시 자막 양식일 필요는 없습니다. 다음의 양식도 지원합니다.
 
 ```txt
 2%-
@@ -115,7 +115,7 @@ Let's go.
 즉, 타임스탬프가 없어도 순서 다음에 `%-` 기호만 있으면 병합할 수 있습니다. 이 기능을 이용하면 번역 엔진을 사용할 때 필요 없는 부분을 제거하고 번역한 뒤 병합할 수 있습니다. 터미널에서 다음 명령어를 실행해 보세요. 타임스탬프를 없애고 순서 다음에 `%-` 기호를 자동으로 붙여줍니다.
 
 ```sh
-cat org.srt | perl -0777 -pe 's/^\s*\n//mg;s/([0-9]+)\n([0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} --> [0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3})/$1%-/g' > to-translate.txt
+cat org.srt | perl -0777 -pe 's/^\s*\n//mg; s/([0-9]+)\n([0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} --> [0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3})/$1%-/g'
 ```
 
 ## `smi2srt`
