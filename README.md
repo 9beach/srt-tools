@@ -387,7 +387,7 @@ Okay. Everyone has bottles?
 Let's go.
 ```
 
-## Combinations of options
+### Combinations of options
 
 Most options can be used in combination.
 
