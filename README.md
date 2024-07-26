@@ -120,7 +120,7 @@ To use this for translation, you can remove the unnecessary parts, translate the
 Here's the command to remove timestamps and automatically add the `%-` symbol after the sequence number:
 
 ```sh
-cat org.srt | perl -0777 -pe 's/^\s*\n//mg; s/([0-9]+)\n([0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} --> [0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3})/$1%-/g'
+cat org.srt | perl -0777 -pe 's/^\s*\n//mg; s/([0-9]+)[\r\n]*([0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} --> [0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3})/$1%-/g'
 ```
 
 ## `smi2srt`
