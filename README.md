@@ -29,6 +29,7 @@ cat my-english.srt | srttrans deepl-cli KO > my-ko.srt
 export GEMINI_API_KEY="your-api-key-here"
 cat my-france.srt | srttrans gemini-cli ko > my-ko.srt
 ```
+
 ```sh
 export ANTHROPIC_API_KEY="your-api-key-here"
 cat my-brazil.srt | srttrans claude-cli hi > my-hi.srt
@@ -70,7 +71,6 @@ Let's go.
 ```
 
 **File b**
-
 
 ```
 2
@@ -134,7 +134,6 @@ created: my.srt
 
 If you want to specify a name, command as follows:
 
-
 ```
 smi2srt < my.smi > new.srt
 ```
@@ -168,7 +167,6 @@ created: dirN/M.srt
 `srttidy` is a command-line program that supports various tasks such as synchronizing the timing of [SubRip](https://en.wikipedia.org/wiki/SubRip) files and modifying timestamps. It provides various features necessary for subtitle translation, such as selecting and adjusting the timing of subtitles that have insufficient display time compared to the number of characters.
 
 Let's explain each feature based on the following help message.
-
 
 ```
 Usage: srttidy [OPTIONS] SRT-FILE [...]
@@ -212,7 +210,6 @@ See <https://github.com/9beach/srt-tools> for updates and bug reports
 ```
 
 The following `my.srt` will be used as an example.
-
 
 ```srt
 1
@@ -317,6 +314,12 @@ Conversely, if you want to move them forward, run it like this:
 srttidy -s -9.2 < my.srt > new.srt
 ```
 
+The `-s -9.2,600` option below tells `srttidy` to shift the subtitles by -9.2 seconds, but only for subtitles that appear after 600 seconds from the start of the video.
+
+```
+srttidy -s -9.2,600 < my.srt > new.srt
+```
+
 Sometimes, the sync of the subtitles is off by about 3 seconds in the beginning, but the difference decreases to 0.6 seconds as the video progresses. In this case, you can measure through observation, but you can also find a well-synced English subtitle and compare the timestamps of the Korean and English subtitles at one scene each in the first and second half of the video to know for sure. In such cases, you can linearly correct the sync by using the following command:
 
 ```
@@ -350,7 +353,6 @@ fire of my loins. My sin, my soul.
 ```
 
 ### Indent cleanup
-
 
 ```
 
@@ -419,7 +421,6 @@ The search criteria supports [regular expressions](https://en.wikipedia.org/wiki
 - `.` means any character. A period is represented as `\.`. So, `-g '이.해'` will show subtitles containing words like "이동해" and "이상해", and `-g '(,|\.)'`will show subtitles containing either a comma or a period.
 - `*` means the character preceding it is repeated zero or more times. So, `-g 'dog.*cat'` will show subtitles where `dog` and `cat` appear consecutively, suchas `dogcat`, `dog cat`, and `dog and cat`.
 
-
 ### Deleting subtitles by keyword
 
 To delete only the subtitles containing the word `sub2smi`, use the following command:
@@ -445,7 +446,6 @@ Executing as above shows subtitles containing periods, commas, or question marks
 ### Searching subtitles by character count, line count, and display time
 
 `cc`, `lc`, and `dt` represent character count, line count, and display time, respectively. Let's look at the following execution examples.
-
 
 ```
 $ srttidy -f 'lc=1 and cc>20' < my.srt
