@@ -2,7 +2,7 @@
 
 [한국어](README.ko-KR.md) | English
 
-`srt-tools` is a collection of command-line programs that use LLM to translate [SubRip](https://en.wikipedia.org/wiki/SubRip) files (`.srt` extension), modify them in various ways, and convert them. Currently, `smi2srt`, `srttidy`, and `srtmerge` are included.
+`srt-tools` is a collection of command-line programs that modify [SubRip](https://en.wikipedia.org/wiki/SubRip) files (`.srt` extension) in various ways, and convert them. Currently, `smi2srt`, `srttidy`, and `srtmerge` are included.
 
 ## Installation
 
@@ -66,28 +66,6 @@ Let's go.
 ```
 
 File `a` only merges the subtitles from file `b` that correspond to the numbers existing in file `a`. In other words, if file `a` does not have subtitles for numbers 2 and 3, it will not merge those subtitles from `b`. Please keep this in mind.
-
-File b does not necessarily have to be in the subtitle format. The following format is also supported:
-
-```txt
-2%-
-I didn't bring my wallet.
-3%-
-Again?
-4%-
-Hold on. I'll go get it.
-Hurry up!
-```
-
-This format allows merging the lines back together based on the sequence number followed by the `%-` symbol, without requiring timestamps.
-
-To use this for translation, you can remove the unnecessary parts, translate the text, and then merge the lines back together using the sequence numbers and `%-` symbols.
-
-Here's the command to remove timestamps and automatically add the `%-` symbol after the sequence number:
-
-```sh
-cat org.srt | perl -0777 -pe 's/^\s*\n//mg; s/([0-9]+)[\r\n]*([0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} --> [0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3})/$1%-/g'
-```
 
 ## `smi2srt`
 
