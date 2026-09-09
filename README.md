@@ -2,7 +2,7 @@
 
 [한국어](README.ko-KR.md) | English
 
-`srt-tools` is a collection of command-line programs that use LLM to translate [SubRip](https://en.wikipedia.org/wiki/SubRip) files (`.srt` extension), modify them in various ways, and convert them. Currently, `smi2srt`, `srttidy`, `srttrans`, and `srtmerge` are included.
+`srt-tools` is a collection of command-line programs that use LLM to translate [SubRip](https://en.wikipedia.org/wiki/SubRip) files (`.srt` extension), modify them in various ways, and convert them. Currently, `smi2srt`, `srttidy`, and `srtmerge` are included.
 
 ## Installation
 
@@ -11,43 +11,9 @@ Mac or Linux users can copy the files to a directory registered in the execution
 ```
 sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/smi2srt -o /usr/local/bin/smi2srt
 sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srttidy -o /usr/local/bin/srttidy
-sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srttrans -o /usr/local/bin/srttrans
 sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srtmerge -o /usr/local/bin/srtmerge
-cd /usr/local/bin && sudo chmod a+rx srttidy smi2srt srtmerge srttrans
+cd /usr/local/bin && sudo chmod a+rx srttidy smi2srt srtmerge
 ```
-
-## `srttrans`
-
-To use the AI subtitle translation feature with `srttrans`, you need to first install [llm-cli](https://github.com/9beach/llm-cli) and obtain API keys for the AI services. As of 2024, Google's Gemini API can be used for free, and DeepL also provides a free key with a monthly limit of 500,000 characters. Most LLM services have restrictions related to copyright or inappropriate expressions, so DeepL is the most suitable for subtitle translation purposes. Here's how to use it:
-
-```sh
-export DEEPL_API_KEY="your-api-key-here"
-cat my-english.srt | srttrans deepl-cli KO > my-ko.srt
-```
-
-```sh
-export GEMINI_API_KEY="your-api-key-here"
-cat my-france.srt | srttrans gemini-cli ko > my-ko.srt
-```
-
-```sh
-export ANTHROPIC_API_KEY="your-api-key-here"
-cat my-brazil.srt | srttrans claude-cli hi > my-hi.srt
-```
-
-`ko` and `hi` are abbreviations for Korean and Hindi respectively. `deepl-cli` must use two-letter codes, while `gemini-cli` and `claude-cli` can also accept `Korean` and `Hindi`.
-
-The environment variables `LT_LINES` and `LT_SLEEP_SEC` can be used to control the number of lines translated per request and the wait time between requests. `LT_LINES` sets the number of lines to translate in each request, and `LT_SLEEP_SEC` sets the wait time between each translation request.
-
-```sh
-export GEMINI_API_KEY="your-api-key-here"
-export LT_LINES=100
-export LT_SLEEP_SEC=5
-cat my-france.srt | srttrans gemini-cli JP > my-japanese.srt
-```
-
-Even if you stop the translation process with <kbd>CTRL + C</kbd> because it takes too long, the translated parts will be saved in the file. However, in this case, not only the translated parts but also the untranslated parts will be saved together. This is to make it easy to find the untranslated parts. Now you can save the untranslated parts separately, complete the translation, and then use `srtmerge` to merge them.
-While such cases are rare in `deepl-cli`, `gemini-cli` and `claude-cli` often refuse to translate some sentences for various reasons, making `srtmerge` useful at times.
 
 ## `srtmerge`
 
