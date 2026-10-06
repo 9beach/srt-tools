@@ -12,6 +12,8 @@ assert_ok "../srttidy -c silver < my.srt | diff - my-c.out"
 assert_ok "../srttidy -r < my-c.out | diff - my.srt"
 assert_ok "../srttidy -n -1 < my.srt | diff - my-n1.out"
 assert_ok "../srttidy -t -1 < my.srt | diff - my-t1.out"
+assert_ok "../srttidy -2 20 < s06-split.srt | diff - s06-split-2.out"
+assert_ok "../srttidy -2 20 < s06-split-crlf.srt | diff - s06-split-crlf-2.out"
 
 assert_ok "../srttidy -t < s01-utf16.srt | diff - s01-utf16.txt"
 assert_ok "../srttidy -t < s01-utf8.srt | diff - s01-utf8.txt"

@@ -2,7 +2,7 @@
 
 [한국어](README.ko-KR.md) | English
 
-`srt-tools` is a collection of command-line programs that modify [SubRip](https://en.wikipedia.org/wiki/SubRip) files (`.srt` extension) in various ways, and convert them. Currently, `smi2srt`, `srttidy`, and `srtmerge` are included.
+`srt-tools` is a collection of command-line programs that modify [SubRip](https://en.wikipedia.org/wiki/SubRip) files (`.srt` extension) in various ways, and convert them. Currently, `smi2srt` and `srttidy` are included.
 
 ## Installation
 
@@ -11,61 +11,8 @@ Mac or Linux users can copy the files to a directory registered in the execution
 ```
 sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/smi2srt -o /usr/local/bin/smi2srt
 sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srttidy -o /usr/local/bin/srttidy
-sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srtmerge -o /usr/local/bin/srtmerge
-cd /usr/local/bin && sudo chmod a+rx srttidy smi2srt srtmerge
+cd /usr/local/bin && sudo chmod a+rx srttidy smi2srt
 ```
-
-## `srtmerge`
-
-Use `srtmerge` when merging two files like the ones below.
-
-**File a**
-
-```
-1
-00:00:50,313 --> 00:00:52,478
-안녕.
-
-2
-00:00:52,545 --> 00:00:54,043
--You okay?
--Person 4: You ready to go in?
-
-3
-00:00:54,109 --> 00:00:55,208
-Let's go.
-```
-
-**File b**
-
-```
-2
-00:00:52,545 --> 00:00:54,043
--괜찮아요?
--사람 4: 들어갈 준비 됐어요?
-
-3
-00:00:54,109 --> 00:00:55,208
-가자.
-```
-
-```
-❯ srtmerge a b
-1
-00:00:50,313 --> 00:00:52,478
-안녕.
-
-2
-00:00:52,545 --> 00:00:54,043
--괜찮아요?
--사람 4: 들어갈 준비 됐어요?
-
-3
-00:00:54,109 --> 00:00:55,208
-가자.
-```
-
-File `a` only merges the subtitles from file `b` that correspond to the numbers existing in file `a`. In other words, if file `a` does not have subtitles for numbers 2 and 3, it will not merge those subtitles from `b`. Please keep this in mind.
 
 ## `smi2srt`
 
@@ -133,6 +80,8 @@ Options
   -b                      remove carriage returns and BOM
   -y                      remove unnecessary whitespace
   -1                      make each subtitle one line
+  -2 MAXCHARS             split one-line subtitles longer than MAXCHARS into
+                          two lines, and dialogues into lines per speaker
 
 Examples
   srttidy -t < my.srt > my.txt
@@ -149,6 +98,7 @@ Examples
   srttidy -m '3,0.1;cc>20 and dt<2' my.srt
   srttidy -1 -t < my.srt > my.txt
   srttidy -yb < my.srt > my.txt
+  srttidy -2 40 < old.srt > new.srt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
 ```
@@ -529,6 +479,40 @@ When a sentence spans multiple lines, translation tools like Google Translate of
 
 ```
 srttidy -1 -t < my.srt > text-to-translate.txt
+```
+
+### Splitting long one-line subtitles into two lines
+
+The `-2 MAXCHARS` option splits each one-line subtitle longer than `MAXCHARS` into two lines of similar length, without breaking words. Tags such as `{\an8}` and `<i>` are not counted. Subtitles that already have two or more lines are left untouched.
+
+```
+$ srttidy -2 20 < my.srt
+...
+3
+00:00:35,000 --> 00:00:35,575
+fire of my loins.
+My sin, my soul.
+...
+```
+
+A one-line dialogue like `-You okay? -Yes.` is split per speaker regardless of `MAXCHARS`. A line with only a leading dash is not treated as a dialogue.
+
+```
+-You okay?
+-Yes.
+```
+
+Likewise, a line made of exactly two tag pairs, like `<i>where an artist would</i> <i>incorporate land and landscapes</i>`, is always split between them, regardless of `MAXCHARS`.
+
+```
+<i>where an artist would</i>
+<i>incorporate land and landscapes</i>
+```
+
+To rebalance subtitles that already have multiple lines, combine it with `-1`.
+
+```
+srttidy -1 -2 40 < old.srt > new.srt
 ```
 
 ### Change file encoding to UTF-8

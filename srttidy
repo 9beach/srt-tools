@@ -27,6 +27,8 @@ Options
   -b                      remove carriage returns and BOM
   -y                      remove unnecessary whitespace
   -1                      make each subtitle one line
+  -2 MAXCHARS             split one-line subtitles longer than MAXCHARS into
+                          two lines, and dialogues into lines per speaker
 
 Examples
   srttidy -t < my.srt > my.txt
@@ -44,6 +46,7 @@ Examples
   srttidy -m '3,0.1;cc>20 and dt<2' my.srt
   srttidy -1 -t < my.srt > my.txt
   srttidy -yb < my.srt > my.txt
+  srttidy -2 40 < old.srt > new.srt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
 USAGE
@@ -104,6 +107,59 @@ sub text_counts {
     $lc = 0 if $cc == 0;
 
     return ($lc, $cc);
+}
+
+# Splits a line into dialogue lines ("-A -B" to "-A\n-B"), or into two lines
+# near the middle if longer than max characters. Tags are not counted.
+sub split_line {
+    my ($line, $max, $lf) = @_;
+
+    # Visible characters, and their positions in the line
+    my ($vis, @pos) = ("");
+    while ($line =~ /\G(?:<[^>]*>|\{[^}]*\}|(.))/gs) {
+        next unless defined $1;
+        $vis .= $1;
+        push @pos, $-[1];
+    }
+
+    my @cuts = ();
+    if ($vis =~ /^\s*-/ and $vis =~ /\S\s+-/) {
+        # Dialogue: splits before each " -"
+        while ($vis =~ /\S(\s+)-/g) {
+            push @cuts, [$-[1], $+[1]];
+            pos($vis) = $+[1];
+        }
+    } elsif ($line =~ /^(\s*(?:\{[^}]*\})*<([a-zA-Z]+)\b[^>]*>
+                         (?:(?!<\/?\2\b).)*<\/\2\s*>)\s+
+                       (<([a-zA-Z]+)\b[^>]*>(?:(?!<\/?\4\b).)*<\/\4\s*>\s*)$/x) {
+        # Two tag pairs: "<i>A</i> <i>B</i>" to "<i>A</i>\n<i>B</i>"
+        return $1.$lf.$3;
+    } else {
+        my ($l, $r) = ($vis =~ /^(\s*)/, $vis =~ /(\s*)$/);
+        ($l, $r) = (length $l, length($vis) - length $r);
+        return $line if $r - $l <= $max;
+
+        my $mid = ($l + $r - 1) / 2;
+        my $best;
+        while ($vis =~ /(\s+)/g) {
+            my ($from, $to) = ($-[1], $+[1]);
+            next if $from <= $l or $to >= $r;
+            $best = [$from, $to] if not defined $best
+                or abs($from - $mid) < abs($best->[0] - $mid);
+        }
+        return $line unless defined $best;
+        @cuts = ($best);
+    }
+
+    # Replaces whitespace at each cut with line feed, from the end
+    foreach my $cut (reverse @cuts) {
+        my ($from, $to) = ($pos[$cut->[0]], $pos[$cut->[1] - 1] + 1);
+        my $mid = substr $line, $from, $to - $from;
+        # Keeps tags between whitespace
+        $mid =~ s/(<[^>]*>|\{[^}]*\})|\s+/defined $1 ? $1 : ""/ge;
+        substr($line, $from, $to - $from) = $lf.$mid;
+    }
+    return $line;
 }
 
 # Dies with message if two exclusive options are given
@@ -451,6 +507,14 @@ sub tidy {
         $content =~ tr/\x08\x09\r//d;
     }
 
+    # Splits each one-line subtitle into two lines, or into dialogue lines
+    if (has "2") {
+        my $lf = $content =~ /(\r?\n)/ ? $1 : "\n";
+        $content =~ s/(${QR_DURATION})([ \t]*[^\s][^\r\n]*)
+                    (?=\r?\n[ \t]*(?:\r?\n|\z)|[ \t]*\z)
+                    /$1.split_line($2, $opts{2}, $lf)/xge;
+    }
+
     # Displays subtitle texts only
     if (has "t") {
         for ($content) {
@@ -472,7 +536,7 @@ sub tidy {
 # Starts main routine
 #
 # Checks the constraints of opts
-die $USAGE unless getopts "1f:bytm:c:rg:d:nl:p:s:h", \%opts;
+die $USAGE unless getopts "12:f:bytm:c:rg:d:nl:p:s:h", \%opts;
 
 error_exclusive "c", "r";
 error_exclusive "s", "l";
@@ -505,6 +569,9 @@ if (has "p" and not $opts{p} =~ /^${QR_FRAMERATEMAP}$/) {
 }
 if (has "s" and $opts{s} !~ /^${QR_DECIMAL}$/ and $opts{s} !~ /^${QR_DECIMAL_DECIMAL}$/) {
     die "'$opts{s}' is not a decimal number\n"
+}
+if (has "2" and $opts{2} !~ /^[1-9][0-9]*$/) {
+    die "'$opts{2}' is not a positive integer\n"
 }
 if (has "f") {
     my $expr = $opts{f};

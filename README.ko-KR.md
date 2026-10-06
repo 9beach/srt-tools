@@ -4,7 +4,7 @@
 
 `srt-tools`는 [서브립](https://en.wikipedia.org/wiki/SubRip)
 파일(`.srt` 확장자)을 다양한 방식으로 수정하고
-변환하는 커맨드 라인 기반의 프로그램 모음입니다. 현재 `smi2srt`와 `srttidy`, `srtmerge`가 포함되어 있습니다.
+변환하는 커맨드 라인 기반의 프로그램 모음입니다. 현재 `smi2srt`와 `srttidy`가 포함되어 있습니다.
 
 ## 설치
 
@@ -13,61 +13,8 @@
 ```
 sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/smi2srt -o /usr/local/bin/smi2srt
 sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srttidy -o /usr/local/bin/srttidy
-sudo curl -L https://raw.githubusercontent.com/9beach/srt-tools/main/srtmerge -o /usr/local/bin/srtmerge
-cd /usr/local/bin && sudo chmod a+rx srttidy smi2srt srtmerge
+cd /usr/local/bin && sudo chmod a+rx srttidy smi2srt
 ```
-
-## `srtmerge`
-
-아래와 같은 두 파일을 병합할 때 `srtmerge`를 사용하세요.
-
-**파일 a**
-
-```
-1
-00:00:50,313 --> 00:00:52,478
-안녕하세요.
-
-2
-00:00:52,545 --> 00:00:54,043
--You okay?
--Person 4: You ready to go in?
-
-3
-00:00:54,109 --> 00:00:55,208
-Let's go.
-```
-
-**파일 b**
-
-```
-2
-00:00:52,545 --> 00:00:54,043
--괜찮아요?
--사람 4: 들어갈 준비 됐어요?
-
-3
-00:00:54,109 --> 00:00:55,208
-가자.
-```
-
-```
-❯ srtmerge a b
-1
-00:00:50,313 --> 00:00:52,478
-안녕하세요.
-
-2
-00:00:52,545 --> 00:00:54,043
--괜찮아요?
--사람 4: 들어갈 준비 됐어요?
-
-3
-00:00:54,109 --> 00:00:55,208
-가자.
-```
-
-파일 `a`는 자신에게 존재하는 번호만 파일 `b`로부터 가져와 병합합니다. 즉 파일 `a`에 영어로 된 2, 3 번 자막이 없다면 `b`로부터 해당 자막을 병합하지 않습니다. 이 점에 유의하세요.
 
 ## `smi2srt`
 
@@ -140,6 +87,8 @@ Options
   -b                      remove carriage returns and BOM
   -y                      remove unnecessary whitespace
   -1                      make each subtitle one line
+  -2 MAXCHARS             split one-line subtitles longer than MAXCHARS into
+                          two lines, and dialogues into lines per speaker
 
 Examples
   srttidy -t < my.srt > my.txt
@@ -156,6 +105,7 @@ Examples
   srttidy -m '3,0.1;cc>20 and dt<2' my.srt
   srttidy -1 -t < my.srt > my.txt
   srttidy -yb < my.srt > my.txt
+  srttidy -2 40 < old.srt > new.srt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
 ```
@@ -559,6 +509,40 @@ srttidy -b < old.srt > new.srt
 
 ```
 srttidy -1 -t < my.srt > text-to-translate.txt
+```
+
+### 긴 한 줄 자막을 두 줄로 나누기
+
+`-2 MAXCHARS` 옵션은 `MAXCHARS`보다 긴 한 줄 자막을 단어를 쪼개지 않고 비슷한 길이의 두 줄로 나눕니다. `{\an8}`, `<i>` 같은 태그는 글자 수에 포함하지 않습니다. 이미 두 줄 이상인 자막은 건드리지 않습니다.
+
+```
+$ srttidy -2 20 < my.srt
+...
+3
+00:00:35,000 --> 00:00:35,575
+fire of my loins.
+My sin, my soul.
+...
+```
+
+`-괜찮아? -응.`처럼 한 줄에 있는 대화는 `MAXCHARS`와 관계없이 화자 단위로 나눕니다. 맨 앞에만 대시가 있는 줄은 대화로 보지 않습니다.
+
+```
+-괜찮아?
+-응.
+```
+
+마찬가지로 `<i>where an artist would</i> <i>incorporate land and landscapes</i>`처럼 열고 닫는 태그 덩어리 정확히 두 개로 이루어진 줄은 `MAXCHARS`와 관계없이 항상 둘 사이에서 나눕니다.
+
+```
+<i>where an artist would</i>
+<i>incorporate land and landscapes</i>
+```
+
+이미 여러 줄인 자막까지 다시 나누려면 `-1`과 함께 사용하세요.
+
+```
+srttidy -1 -2 40 < old.srt > new.srt
 ```
 
 ### 파일 인코딩을 UTF-8으로 변경하기
