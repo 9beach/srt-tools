@@ -18,14 +18,14 @@ Options
   -s SECOND[,COND]        shift timestamps by given time in seconds
   -l TIME-MAP             correct timestamps linearly by given time map
   -p FRAMERATE-MAP        correct timestamps linearly by given frame rate map
-  -n                      remove empty subtitles, and reorder lefts one-by-one
+  -n                      fix malformed subtitles, remove empty subtitles, and
+                          reorder lefts one-by-one
   -d PATTERN              remove subtitles including given pattern
   -g PATTERN              show subtitles including given pattern
   -f CONDITION            show subtitles matching given condition
   -m DURATION,GAP[;COND]  change timestamps by given minimum duration, gap
                           in seconds, and condition
   -b                      remove carriage returns and BOM
-  -y                      remove unnecessary whitespace
   -1                      make each subtitle one line
   -2 MAXCHARS             split one-line subtitles longer than MAXCHARS into
                           two lines, and dialogues into lines per speaker
@@ -45,7 +45,7 @@ Examples
   srttidy -m 1.0,0.1 my.srt
   srttidy -m '3,0.1;cc>20 and dt<2' my.srt
   srttidy -1 -t < my.srt > my.txt
-  srttidy -yb < my.srt > my.txt
+  srttidy -nb < my.srt > new.srt
   srttidy -2 40 < old.srt > new.srt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
@@ -162,6 +162,48 @@ sub split_line {
     return $line;
 }
 
+# Fixes malformed subtitles: text on timestamp line, missing blank line or
+# order, whitespace, timestamp format, and mixed line endings
+sub normalize {
+    my $content = shift;
+    my $bom = $content =~ s/${QR_BOM}// ? "\x{FEFF}" : "";
+    my $lf = $content =~ /(\r?\n)/ ? $1 : "\n";
+    my $t = qr/(\d{1,2}):(\d{1,2}):(\d{1,2})[,.](\d{1,3})/;
+
+    # Formats "1:2:3.4" to "01:02:03,400"
+    sub fmt_time {
+        my ($h, $m, $s, $ms) = @_;
+        return sprintf "%02d:%02d:%02d,%s", $h, $m, $s, substr($ms."00", 0, 3);
+    }
+
+    # Lines before first timestamp are dropped except order
+    my @subs = ();
+    my $prev = [];
+    foreach my $line (split /\r?\n/, $content) {
+        $line =~ s/^\s+|\s+$//g;
+        if ($line =~ /^(?:(\d+)\s+)?${t}\s*-->\s*${t}\s*(.*)$/) {
+            my ($order, $text) = ($1, $10);
+            my $time = fmt_time($2, $3, $4, $5).' --> '.fmt_time($6, $7, $8, $9);
+            # Takes order from the last line before timestamp
+            $order = pop @$prev if not defined $order
+                and @$prev and $prev->[-1] =~ /^\d+$/;
+            $order = @subs ? $subs[-1]{order} + 1 : 1 unless defined $order;
+            push @subs, {
+                order => $order,
+                time => $time,
+                text => length $text ? [$text] : [],
+            };
+            $prev = $subs[-1]{text};
+        } elsif (length $line) {
+            push @$prev, $line;
+        }
+    }
+
+    return $bom.join("", map {
+        join($lf, $_->{order}, $_->{time}, @{$_->{text}}).$lf.$lf
+    } @subs);
+}
+
 # Dies with message if two exclusive options are given
 sub error_exclusive {
     my ($l, $r) = @_;
@@ -242,12 +284,8 @@ sub tidy {
         $content =~ s/${QR_BOM}//;
     }
 
-    # Removes unnecessary whitespace
-    if (has "y") {
-        $content =~ s/^\s*\n//mg;
-        $content =~ s/(?<=\n)(\d+\n\d{2}:\d{2}:\d{2})/\n$1/xgm;
-        $content =~ s/\n\n+/\n\n/xgm;
-    }
+    # Fixes malformed subtitles
+    $content = normalize($content) if has "n";
  
     # Deletes subtitles including given pattern
     if (has "d") {
@@ -538,12 +576,14 @@ sub tidy {
 # Checks the constraints of opts
 die $USAGE unless getopts "12:f:bytm:c:rg:d:nl:p:s:h", \%opts;
 
+# -y is kept as -n for backward compatibility
+$opts{n} = 1 if has "y";
+
 error_exclusive "c", "r";
 error_exclusive "s", "l";
 error_exclusive "t", "c";
 error_exclusive "t", "r";
 error_exclusive "t", "b";
-error_exclusive "t", "y";
 error_exclusive "t", "s";
 error_exclusive "t", "l";
 error_exclusive "t", "p";

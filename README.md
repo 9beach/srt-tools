@@ -65,20 +65,19 @@ Usage: srttidy [OPTIONS] SRT-FILE [...]
 
 Options
   -t                      show subtitle texts only
-  -u                      show numeric counters and subtitle texts only
   -c COLOR                specify default subtitle font color
   -r                      remove srttidy-specified font color
-  -s SECOND               shift timestamps by given time in seconds
+  -s SECOND[,COND]        shift timestamps by given time in seconds
   -l TIME-MAP             correct timestamps linearly by given time map
   -p FRAMERATE-MAP        correct timestamps linearly by given frame rate map
-  -n                      remove empty subtitles, and reorder lefts one-by-one
+  -n                      fix malformed subtitles, remove empty subtitles, and
+                          reorder lefts one-by-one
   -d PATTERN              remove subtitles including given pattern
   -g PATTERN              show subtitles including given pattern
   -f CONDITION            show subtitles matching given condition
   -m DURATION,GAP[;COND]  change timestamps by given minimum duration, gap
                           in seconds, and condition
   -b                      remove carriage returns and BOM
-  -y                      remove unnecessary whitespace
   -1                      make each subtitle one line
   -2 MAXCHARS             split one-line subtitles longer than MAXCHARS into
                           two lines, and dialogues into lines per speaker
@@ -88,6 +87,7 @@ Examples
   srttidy -c silver *.srt
   srttidy -r < old.srt > new.srt
   srttidy -s -8.26 < old.srt > new.srt
+  srttidy -s -8.26,260.3 < old.srt > new.srt
   srttidy -b -l "00:00:19,145-00:00:22,189 02:39:17,715-02:39:18,390" my.srt
   srttidy -p "23.976-24" my.srt
   srttidy -n -d '(yts|sub2smi|elsubtitle)' *.srt
@@ -97,7 +97,7 @@ Examples
   srttidy -m 1.0,0.1 my.srt
   srttidy -m '3,0.1;cc>20 and dt<2' my.srt
   srttidy -1 -t < my.srt > my.txt
-  srttidy -yb < my.srt > my.txt
+  srttidy -nb < my.srt > new.srt
   srttidy -2 40 < old.srt > new.srt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
@@ -246,7 +246,9 @@ fire of my loins. My sin, my soul.
 ...
 ```
 
-### Indent cleanup
+### Fixing malformed subtitles
+
+The `-n` option also fixes malformed subtitles like the one below.
 
 ```
 
@@ -254,31 +256,34 @@ fire of my loins. My sin, my soul.
 00:00:50,313 --> 00:00:52,478
 Okay. Everyone has bottles?
 9
-00:00:52,545 --> 00:00:54,043
--You okay?
+0:00:52.545-->0:00:54.043 -You okay?
 
--Person 4: You ready to go in?
+-Person 4: You ready to go in?   
 
 
-10
+10 
 00:00:54,109 --> 00:00:55,208
 Let's go.
 ```
 
-Such subtitles can be neatly cleaned up with the `-y` option.
+- text attached to the timestamp line is moved to the next line
+- missing blank lines between subtitles are added, and blank lines in text are removed
+- whitespace at the start and end of lines is removed
+- timestamps like `0:00:52.545-->0:00:54.043` are corrected
+- missing subtitle numbers are added, and mixed line endings are unified
 
 ```
-> cat nasty.srt | srttidy -y
-8
+$ srttidy -n < nasty.srt
+1
 00:00:50,313 --> 00:00:52,478
 Okay. Everyone has bottles?
 
-9
+2
 00:00:52,545 --> 00:00:54,043
 -You okay?
 -Person 4: You ready to go in?
 
-10
+3
 00:00:54,109 --> 00:00:55,208
 Let's go.
 ```
