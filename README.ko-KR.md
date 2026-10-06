@@ -88,6 +88,10 @@ Options
   -1                      make each subtitle one line
   -2 MAXCHARS             split one-line subtitles longer than MAXCHARS into
                           two lines, and dialogues into lines per speaker
+  -a POSITION             add position tag ({\an1} to {\an9}) to subtitles
+                          without position tag
+  -A POSITION             replace all position tags with given position, or
+                          remove them if POSITION is 0
 
 Examples
   srttidy -t < my.srt > my.txt
@@ -106,6 +110,8 @@ Examples
   srttidy -1 -t < my.srt > my.txt
   srttidy -nb < my.srt > new.srt
   srttidy -2 40 < old.srt > new.srt
+  srttidy -a 8 < old.srt > new.srt
+  srttidy -A 0 < old.srt > new.srt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
 ```
@@ -548,6 +554,29 @@ My sin, my soul.
 
 ```
 srttidy -1 -2 40 < old.srt > new.srt
+```
+
+### 자막 위치 지정하기
+
+`{\an1}`부터 `{\an9}`까지의 태그는 숫자 키패드 배치처럼 자막의 위치를 지정합니다. 태그가 없으면 보통 가운데 아래에 표시됩니다.
+
+```
+7 왼쪽 위     8 가운데 위     9 오른쪽 위
+4 왼쪽 중간   5 정중앙        6 오른쪽 중간
+1 왼쪽 아래   2 가운데 아래   3 오른쪽 아래
+```
+
+`-a POSITION` 옵션은 위치 태그가 없는 자막에만 위치 태그를 추가합니다. 기존 위치 태그는 그대로 둡니다.
+
+```
+srttidy -a 8 < old.srt > new.srt
+```
+
+`-A POSITION` 옵션은 모든 위치 태그를 지정한 위치로 바꿉니다. `-A 0`은 위치 태그를 모두 지웁니다. `{\i1}` 같은 다른 태그는 그대로 둡니다.
+
+```
+srttidy -A 8 < old.srt > new.srt
+srttidy -A 0 < old.srt > new.srt
 ```
 
 ### 파일 인코딩을 UTF-8으로 변경하기

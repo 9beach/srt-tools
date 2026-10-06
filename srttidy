@@ -29,6 +29,10 @@ Options
   -1                      make each subtitle one line
   -2 MAXCHARS             split one-line subtitles longer than MAXCHARS into
                           two lines, and dialogues into lines per speaker
+  -a POSITION             add position tag ({\\an1} to {\\an9}) to subtitles
+                          without position tag
+  -A POSITION             replace all position tags with given position, or
+                          remove them if POSITION is 0
 
 Examples
   srttidy -t < my.srt > my.txt
@@ -47,6 +51,8 @@ Examples
   srttidy -1 -t < my.srt > my.txt
   srttidy -nb < my.srt > new.srt
   srttidy -2 40 < old.srt > new.srt
+  srttidy -a 8 < old.srt > new.srt
+  srttidy -A 0 < old.srt > new.srt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
 USAGE
@@ -99,6 +105,7 @@ sub text_counts {
     my $text = shift;
     for ($text) {
         s/<\/? *[a-zA-Z]*[^>]*>//gm;
+        s/\{[^}]*\}//gm;
         s/^\s*//gm;
     }
     my $lc = $text =~ tr/\n//;
@@ -202,6 +209,24 @@ sub normalize {
     return $bom.join("", map {
         join($lf, $_->{order}, $_->{time}, @{$_->{text}}).$lf.$lf
     } @subs);
+}
+
+# Sets position tag ({\an1} to {\an9}) of subtitle text. Adds it only to text
+# without position tag, or replaces all position tags if forced. Position 0
+# removes all position tags.
+sub set_position {
+    my ($text, $pos, $force) = @_;
+    my $QR_POS = qr/\\an?\d+/;
+
+    unless ($force) {
+        return $text if $text =~ /\{[^}]*${QR_POS}/;
+    } else {
+        $text =~ s/\{([^}]*)\}/
+            my $tag = $1; $tag =~ s|${QR_POS}||g;
+            length $tag ? "{$tag}" : ""
+            /ge;
+    }
+    return $pos ? "{\\an$pos}$text" : $text;
 }
 
 # Dies with message if two exclusive options are given
@@ -530,6 +555,14 @@ sub tidy {
         $content = $ncontent;
     }
 
+    # Sets position tags
+    if (has "a" or has "A") {
+        my ($pos, $force) = has("A") ? ($opts{A}, 1) : ($opts{a}, 0);
+        $content =~ s/(${QR_DURATION})([^\r\n][^\x00]*?)
+                    (?=\r?\n[ \t]*\r?\n|\r?\n?\z)
+                    /$1.set_position($2, $pos, $force)/xge;
+    }
+
     # Makes each subtitle one line
     if (has "1") {
         my $buf = $content; $content = "";
@@ -558,6 +591,7 @@ sub tidy {
         for ($content) {
             s/${QR_BOM}?[0-9]+\s*\r?\n\s*${QR_DURATION}//gm;
             s/<\/? *[a-zA-Z]*[^>]*>//gm;
+            s/\{[^}]*\}//gm;
             s/^\s*//gm;
             s/ +/ /g;
         }
@@ -574,7 +608,7 @@ sub tidy {
 # Starts main routine
 #
 # Checks the constraints of opts
-die $USAGE unless getopts "12:f:bytm:c:rg:d:nl:p:s:h", \%opts;
+die $USAGE unless getopts "12:a:A:f:bytm:c:rg:d:nl:p:s:h", \%opts;
 
 # -y is kept as -n for backward compatibility
 $opts{n} = 1 if has "y";
@@ -588,6 +622,9 @@ error_exclusive "t", "s";
 error_exclusive "t", "l";
 error_exclusive "t", "p";
 error_exclusive "t", "n";
+error_exclusive "t", "a";
+error_exclusive "t", "A";
+error_exclusive "a", "A";
 error_exclusive "m", "t";
 error_exclusive "m", "f";
 error_exclusive "m", "g";
@@ -612,6 +649,12 @@ if (has "s" and $opts{s} !~ /^${QR_DECIMAL}$/ and $opts{s} !~ /^${QR_DECIMAL_DEC
 }
 if (has "2" and $opts{2} !~ /^[1-9][0-9]*$/) {
     die "'$opts{2}' is not a positive integer\n"
+}
+if (has "a" and $opts{a} !~ /^[1-9]$/) {
+    die "'$opts{a}' is not a position (1-9)\n"
+}
+if (has "A" and $opts{A} !~ /^[0-9]$/) {
+    die "'$opts{A}' is not a position (0-9)\n"
 }
 if (has "f") {
     my $expr = $opts{f};

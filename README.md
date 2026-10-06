@@ -81,6 +81,10 @@ Options
   -1                      make each subtitle one line
   -2 MAXCHARS             split one-line subtitles longer than MAXCHARS into
                           two lines, and dialogues into lines per speaker
+  -a POSITION             add position tag ({\an1} to {\an9}) to subtitles
+                          without position tag
+  -A POSITION             replace all position tags with given position, or
+                          remove them if POSITION is 0
 
 Examples
   srttidy -t < my.srt > my.txt
@@ -99,6 +103,8 @@ Examples
   srttidy -1 -t < my.srt > my.txt
   srttidy -nb < my.srt > new.srt
   srttidy -2 40 < old.srt > new.srt
+  srttidy -a 8 < old.srt > new.srt
+  srttidy -A 0 < old.srt > new.srt
 
 See <https://github.com/9beach/srt-tools> for updates and bug reports
 ```
@@ -518,6 +524,29 @@ To rebalance subtitles that already have multiple lines, combine it with `-1`.
 
 ```
 srttidy -1 -2 40 < old.srt > new.srt
+```
+
+### Setting subtitle position
+
+`{\an1}` to `{\an9}` tags set the position of subtitles, like a numeric keypad. Without them, subtitles are usually shown at the bottom center.
+
+```
+7 top left      8 top center      9 top right
+4 middle left   5 middle center   6 middle right
+1 bottom left   2 bottom center   3 bottom right
+```
+
+The `-a POSITION` option adds a position tag only to subtitles without one, so existing position tags are kept.
+
+```
+srttidy -a 8 < old.srt > new.srt
+```
+
+The `-A POSITION` option replaces all position tags with the given position. `-A 0` removes all position tags. Other tags like `{\i1}` are kept.
+
+```
+srttidy -A 8 < old.srt > new.srt
+srttidy -A 0 < old.srt > new.srt
 ```
 
 ### Change file encoding to UTF-8
